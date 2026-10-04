@@ -1,0 +1,18 @@
+---
+layout: layouts/base.njk
+title: Home
+---
+<section class="intro">
+  <h1>{{ site.title }}</h1>
+  {#- PLACEHOLDER: David writes this introduction. #}
+  <p class="placeholder">[Placeholder: a short introduction in David's words.]</p>
+</section>
+
+<section>
+  <h2>Recent writing</h2>
+  {%- set postList = collections.posts | head(5) %}
+  {% include "post-list.njk" %}
+  {%- if collections.posts | length > 5 %}
+  <p><a href="/blog/">All writing →</a></p>
+  {%- endif %}
+</section>

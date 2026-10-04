@@ -1,0 +1,8 @@
+---
+layout: layouts/page.njk
+title: Writing
+permalink: /blog/
+---
+{%- set postList = collections.posts %}
+{% include "post-list.njk" %}
+<p class="subscribe"><a href="/feed.xml">Subscribe via feed</a></p>

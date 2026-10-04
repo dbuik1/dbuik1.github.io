@@ -1,0 +1,21 @@
+---
+layout: layouts/base.njk
+---
+<article class="post">
+  <header class="post-header">
+    <h1>{{ title }}</h1>
+    <p class="post-meta">
+      <time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time>
+      {%- if draft %} · <span class="draft-badge">Draft, not published</span>{% endif %}
+    </p>
+  </header>
+  {{ content | safe }}
+</article>
+
+{%- set previousPost = collections.posts | getNextCollectionItem(page) %}
+{%- set nextPost = collections.posts | getPreviousCollectionItem(page) %}
+<nav class="post-nav" aria-label="More writing">
+  {%- if previousPost %}<a href="{{ previousPost.url }}">← {{ previousPost.data.title }}</a>{% endif %}
+  <a href="/blog/">All writing</a>
+  {%- if nextPost %}<a href="{{ nextPost.url }}">{{ nextPost.data.title }} →</a>{% endif %}
+</nav>

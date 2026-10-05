@@ -1,15 +1,15 @@
 /* Design tokens. Every colour and font below comes from these. */
 :root {
-  --bg: #fbfbf9;
-  --fg: #1e2421;
-  --muted: #5f6a64;
-  --rule: #dfe3df;
-  --accent: #2f6b4f;
-  --placeholder-bg: #eef1ee;
+  --bg: #fcfcfb;
+  --fg: #1a1a1c;
+  --muted: #66646a;
+  --rule: #e2e0e2;
+  --accent: #a3182b;
+  --placeholder-bg: #f0eff0;
 
-  --font-display: "Literata", Georgia, serif;
-  --font-body: "Literata", Georgia, serif;
-  --font-label: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --font-label: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
 
   --measure: 42rem;
   color-scheme: light dark;
@@ -17,12 +17,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141917;
-    --fg: #e4e9e6;
-    --muted: #9aa69f;
-    --rule: #2a332e;
-    --accent: #7fc4a0;
-    --placeholder-bg: #1f2723;
+    --bg: #161416;
+    --fg: #ece9ea;
+    --muted: #a29da2;
+    --rule: #302c30;
+    --accent: #e8707f;
+    --placeholder-bg: #221f22;
   }
 }
 
@@ -34,7 +34,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-body);
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   line-height: 1.6;
 }
 
@@ -52,7 +52,9 @@ a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; text-wrap: balance; }
-h1 { font-size: 2rem; margin: 0; }
+h1 { font-size: 2.25rem; font-weight: 500; margin: 0; }
+/* Section headings are set in the accent red, like the rubrics in a printed confession. Sentence case only. */
+h2 { font-size: 1.125rem; font-weight: 700; color: var(--accent); margin: 0; }
 
 img { max-width: 100%; height: auto; }
 
@@ -66,8 +68,8 @@ img { max-width: 100%; height: auto; }
   align-items: baseline;
   gap: 0.5rem 1.5rem;
 }
-.site-name { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; color: var(--fg); text-decoration: none; }
-.site-header ul { display: flex; gap: 1.25rem; list-style: none; margin: 0; padding: 0; font-family: var(--font-label); font-size: 0.875rem; }
+.site-name { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; color: var(--fg); text-decoration: none; }
+.site-header ul { display: flex; gap: 1.25rem; list-style: none; margin: 0; padding: 0; font-family: var(--font-label); font-size: 1rem; }
 .site-header nav a { color: var(--muted); text-decoration: none; }
 .site-header nav a[aria-current="page"] { color: var(--fg); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 0.3em; }
 

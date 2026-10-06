@@ -1,0 +1,19 @@
+---
+layout: layouts/page.njk
+title: Annotated passages
+description: Every confession section and Bible passage annotated in a post.
+permalink: /annotations/
+---
+{%- set groups = collections.annotations | groupby("source") %}
+{%- for source, passages in groups %}
+<section class="home-section">
+  <h2>{{ source }}</h2>
+  <ul class="post-list">
+    {%- for a in passages %}
+    <li><a href="{{ a.url }}">{{ a.label }}</a>{% if a.heading %} <span class="muted">{{ a.heading }}</span>{% endif %} <span class="muted">· {{ a.entries | length }} {{ "post" if a.entries | length == 1 else "posts" }}</span></li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- else %}
+<p>No annotations yet.</p>
+{%- endfor %}

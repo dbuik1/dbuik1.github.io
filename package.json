@@ -1,0 +1,20 @@
+{
+  "name": "davidbuik.com",
+  "private": true,
+  "type": "module",
+  "description": "Personal website of David Buik, built with Eleventy.",
+  "scripts": {
+    "start": "npm run build && ELEVENTY_ENV=development eleventy --serve",
+    "build": "eleventy && pagefind --site _site",
+    "clean": "rm -rf _site"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.6",
+    "@11ty/eleventy-plugin-rss": "^3.1.0",
+    "markdown-it": "^14.3.2",
+    "pagefind": "^1.5.2"
+  }
+}

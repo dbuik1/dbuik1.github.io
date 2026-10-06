@@ -1,0 +1,13 @@
+{#- Expects `postList`. -#}
+{%- if postList | length %}
+<ul class="post-list">
+  {%- for p in postList %}
+  <li>
+    <a class="post-title" href="{{ p.url }}">{{ p.data.title }}</a>
+    {% include "partials/post-meta.njk" %}
+  </li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="empty">No posts yet.</p>
+{%- endif %}

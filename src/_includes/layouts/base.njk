@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="{{ site.language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if title and page.url != "/" %}{{ title }} · {% endif %}{{ site.title }}</title>
+  <meta name="description" content="{{ description or site.description }}">
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}">
+  <meta property="og:title" content="{% if page.url == "/" %}{{ site.title }}{% else %}{{ title or site.title }}{% endif %}">
+  <meta property="og:description" content="{{ description or site.description }}">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap">
+  <link rel="alternate" type="application/atom+xml" href="/feed.xml" title="{{ site.title }}">
+  <link rel="stylesheet" href="/css/style.css">
+  <script>try { if (localStorage.getItem("annotation-mode") === "compact" && "showPopover" in HTMLElement.prototype) document.documentElement.dataset.annotations = "compact"; } catch (e) {}</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site">
+    <header class="site-header">
+      <a class="site-name" href="/">{{ site.title }}</a>
+      {%- if site.nav | length > 1 %}
+      <nav aria-label="Main">
+        <ul>
+          {%- for item in site.nav %}
+          <li><a href="{{ item.url }}"{% if item.url == page.url or (item.url != "/" and page.url.startsWith(item.url)) %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+          {%- endfor %}
+        </ul>
+      </nav>
+      {%- endif %}
+    </header>
+
+    <main id="main">
+      {{ content | safe }}
+    </main>
+
+    <footer class="site-footer">
+      <span>© {{ year }} {{ site.author }}</span>
+      <nav aria-label="Site">
+        {%- for item in site.footer %}
+        <a href="{{ item.url }}"{% if item.url == page.url %} aria-current="page"{% endif %}>{{ item.label }}</a>
+        {%- endfor %}
+      </nav>
+    </footer>
+  </div>
+</body>
+</html>

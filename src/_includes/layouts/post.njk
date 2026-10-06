@@ -1,0 +1,50 @@
+---
+layout: layouts/base.njk
+---
+{%- set p = { date: page.date, data: { category: category, level: level, draft: draft, project: project } } %}
+<article class="post" data-pagefind-body>
+  <header class="post-header">
+    <h1>{{ title }}</h1>
+    {% include "partials/post-meta.njk" %}
+    {%- if 'class="annotation"' in content %}
+    <div class="anno-toggle" hidden>
+      <span id="anno-mode-label">Annotations</span>
+      <div class="seg" role="group" aria-labelledby="anno-mode-label">
+        <button type="button" data-mode="expanded" aria-pressed="true">Expanded</button>
+        <button type="button" data-mode="compact" aria-pressed="false">Compact</button>
+      </div>
+    </div>
+    <script src="/js/annotations.js" defer></script>
+    {%- endif %}
+  </header>
+
+  {%- if series %}
+  {%- set parts = collections.posts | inSeries(series) %}
+  <nav class="series" aria-label="Series">
+    <p>Part of the series <strong>{{ series }}</strong></p>
+    <ol>
+      {%- for part in parts %}
+      <li>{% if part.url == page.url %}<span aria-current="page">{{ part.data.title }}</span>{% else %}<a href="{{ part.url }}">{{ part.data.title }}</a>{% endif %}</li>
+      {%- endfor %}
+    </ol>
+  </nav>
+  {%- endif %}
+
+  <div class="post-body">
+    {{ content | safe }}
+  </div>
+
+  {%- if tags and tags | length %}
+  <p class="post-tags">Tags:
+    {%- for tag in tags %} <a href="/tags/{{ tag | slugify }}/">{{ tag }}</a>{% if not loop.last %},{% endif %}{% endfor %}
+  </p>
+  {%- endif %}
+</article>
+
+{%- set newer = collections.posts | getPreviousCollectionItem(page) %}
+{%- set older = collections.posts | getNextCollectionItem(page) %}
+<nav class="post-nav" aria-label="More writing">
+  {%- if older %}<a href="{{ older.url }}">← {{ older.data.title }}</a>{% endif %}
+  <a href="/blog/">All writing</a>
+  {%- if newer %}<a href="{{ newer.url }}">{{ newer.data.title }} →</a>{% endif %}
+</nav>

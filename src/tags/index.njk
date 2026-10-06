@@ -1,0 +1,14 @@
+---
+layout: layouts/page.njk
+title: Tags
+permalink: /tags/
+---
+{%- if collections.tagList | length %}
+<ul class="tag-index">
+  {%- for t in collections.tagList %}
+  <li><a href="/tags/{{ t.name | slugify }}/">{{ t.name }}</a> <span class="count">{{ t.count }}</span></li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="empty">No tags yet. Tags appear here once a post uses them.</p>
+{%- endif %}

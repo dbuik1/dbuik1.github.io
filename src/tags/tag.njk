@@ -1,0 +1,13 @@
+---
+layout: layouts/page.njk
+pagination:
+  data: collections.tagList
+  size: 1
+  alias: tag
+permalink: "/tags/{{ tag.name | slugify }}/"
+eleventyComputed:
+  title: "Tagged “{{ tag.name }}”"
+---
+{%- set postList = collections.posts | withTag(tag.name) %}
+{% include "partials/post-list.njk" %}
+<p><a href="/tags/">All tags</a></p>

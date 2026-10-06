@@ -1,0 +1,32 @@
+---
+layout: layouts/page.njk
+pagination:
+  data: collections.annotations
+  size: 1
+  alias: passage
+permalink: "/annotations/{{ passage.key }}/"
+eleventyComputed:
+  title: "{{ passage.label }}"
+  description: "Posts that annotate {{ passage.label }}."
+---
+{%- if passage.heading %}<p class="lede">{{ passage.heading }}</p>{% endif %}
+<blockquote class="passage">
+  {%- for para in passage.paragraphs %}
+  <p>{{ para }}</p>
+  {%- endfor %}
+</blockquote>
+
+<section class="home-section">
+  <h2>Annotated in</h2>
+  <ul class="anno-entries">
+    {%- for e in passage.entries %}
+    <li>
+      <a href="{{ e.post.url }}#{{ e.id }}">{{ e.post.data.title }}</a>
+      <span class="stance stance-{{ e.stance }}">{{ e.stance | stanceName }}</span>
+      <time datetime="{{ e.post.date | isoDate }}">{{ e.post.date | readableDate }}</time>
+      <q>{{ e.phrase }}</q>
+    </li>
+    {%- endfor %}
+  </ul>
+</section>
+<p><a href="/annotations/">All annotated passages</a></p>

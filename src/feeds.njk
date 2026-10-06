@@ -1,0 +1,13 @@
+---
+layout: layouts/page.njk
+title: Feeds
+description: Follow new writing in a feed reader.
+permalink: /feeds/
+---
+<p class="lede">Paste one of these addresses into a feed reader to get new posts as they appear.</p>
+<ul class="feed-list">
+  <li><a href="/feed.xml">All writing</a> <code>{{ site.url }}/feed.xml</code></li>
+  {%- for c in categories %}
+  <li><a href="/blog/{{ c.slug }}/feed.xml">{{ c.name }}</a> <code>{{ site.url }}/blog/{{ c.slug }}/feed.xml</code></li>
+  {%- endfor %}
+</ul>

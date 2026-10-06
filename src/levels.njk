@@ -1,0 +1,13 @@
+---
+layout: layouts/page.njk
+title: Research levels
+permalink: /levels/
+---
+<dl class="levels">
+  {%- for l in levels %}
+  <div id="{{ l.slug }}">
+    <dt>{{ l.name }}</dt>
+    <dd>{% if l.description %}{{ l.description }}{% else %}<span class="placeholder-inline">[What “{{ l.name }}” means, in your words]</span>{% endif %}</dd>
+  </div>
+  {%- endfor %}
+</dl>

@@ -56,7 +56,7 @@ On a phone, the GitHub app or the mobile site works the same way.
 
 ```sh
 npm install      # once
-npm start        # preview at http://localhost:8080; drafts are shown here
+npm start        # preview at http://localhost:8080; drafts are shown here, but not in search
 ```
 
 Create the file in `src/blog/`, and the preview updates as you save. When you're happy, commit and push to `main`.
@@ -133,6 +133,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `texts/` | Confession and Bible texts that posts can annotate |
 | `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
 | `src/annotations/` | The annotated passages pages |
+| `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts and projects after each build |
 | `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |

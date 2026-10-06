@@ -216,3 +216,18 @@ html[data-annotations="compact"] .anno-chip { display: inline-block; margin: 0 0
 .anno-entries li { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: baseline; }
 .anno-entries time, .anno-entries q, .muted { color: var(--muted); font-size: 0.9375rem; }
 .anno-entries q { flex-basis: 100%; }
+
+/* Search (Pagefind UI), themed with the site tokens. */
+.search {
+  --pagefind-ui-scale: 0.9;
+  --pagefind-ui-primary: var(--accent);
+  --pagefind-ui-text: var(--fg);
+  --pagefind-ui-background: var(--bg);
+  --pagefind-ui-border: var(--rule);
+  --pagefind-ui-tag: var(--placeholder-bg);
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 6px;
+  --pagefind-ui-font: var(--font-body);
+}
+.search mark { background: var(--mark); color: inherit; }
+.search .pagefind-ui__search-clear { color: var(--accent); background: var(--bg); }

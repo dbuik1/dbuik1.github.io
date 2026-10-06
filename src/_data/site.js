@@ -10,6 +10,7 @@ export default {
     { label: "Home", url: "/" },
     { label: "Writing", url: "/blog/" },
     { label: "Projects", url: "/projects/" },
+    { label: "Search", url: "/search/" },
   ],
   footer: [
     { label: "Feeds", url: "/feeds/" },

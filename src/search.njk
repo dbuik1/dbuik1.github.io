@@ -1,0 +1,13 @@
+---
+layout: layouts/page.njk
+title: Search
+description: Search the writing and projects on this site.
+permalink: /search/
+---
+<link rel="stylesheet" href="/pagefind/pagefind-ui.css">
+<div id="search" class="search"></div>
+<noscript><p>Search needs JavaScript. You can also browse <a href="/blog/">all writing</a> or the <a href="/tags/">tags</a>.</p></noscript>
+<script src="/pagefind/pagefind-ui.js"></script>
+<script>
+  new PagefindUI({ element: "#search", showSubResults: true, showImages: false, autofocus: true, resetStyles: false });
+</script>

@@ -2,7 +2,7 @@
 layout: layouts/base.njk
 ---
 {%- set p = { date: page.date, data: { category: category, level: level, draft: draft, project: project } } %}
-<article class="post">
+<article class="post" data-pagefind-body>
   <header class="post-header">
     <h1>{{ title }}</h1>
     {% include "partials/post-meta.njk" %}

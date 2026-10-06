@@ -36,6 +36,7 @@ Your post starts here.
 | `tags` | No | Any words, in square brackets, separated by commas |
 | `description` | No | One line for link previews |
 | `series` | No | The same name on several posts links them as a numbered series |
+| `project` | No | A project's file name without `.md`, e.g. `example-project`; the post then shows on that project's page |
 | `draft` | No | `true` keeps the post off the live site; remove the line to publish |
 
 If a required field is missing or misspelled, the build stops and names the file and field. The live site stays as it was until it's fixed.
@@ -64,6 +65,33 @@ Create the file in `src/blog/`, and the preview updates as you save. When you're
 
 Category names are in `src/_data/categories.js` and research level names in `src/_data/levels.js`. Change a `name` there and every page picks it up. The research levels page reads each level's `description` from the same file.
 
+## Adding a project
+
+Each project is one Markdown file in `src/projects/`. The file name becomes its address: `bible-app.md` is published at `/projects/bible-app/`.
+
+```markdown
+---
+title: Bible app
+status: active
+summary: One line saying what the project is.
+links:
+  - label: Source code
+    url: https://github.com/dbuik1/bible-app
+---
+
+A longer description, if you want one.
+```
+
+| Field | Required | What to put |
+| --- | --- | --- |
+| `title` | Yes | The project's name |
+| `status` | Yes | `active`, `paused`, `shipped` or `retired` |
+| `summary` | No | One line shown in lists |
+| `links` | No | Each with a `label` and a `url` |
+| `draft` | No | `true` keeps it off the live site |
+
+The Projects page groups projects by status, and active ones also appear on the home page. To move a project, change its `status`. Posts with a matching `project:` field are listed on the project's page. Status names are in `src/_data/statuses.js`.
+
 ## Where things live
 
 | Path | What it is |
@@ -73,8 +101,9 @@ Category names are in `src/_data/categories.js` and research level names in `src
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
 | `src/blog/` | Posts, plus the Writing and category pages |
-| `src/_data/categories.js`, `src/_data/levels.js` | Category and research level names |
-| `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post` |
+| `src/projects/` | Projects, plus the Projects page |
+| `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |
+| `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |
 
 Text in a grey box marked `[...]` is waiting to be written.

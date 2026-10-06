@@ -1,0 +1,19 @@
+---
+layout: layouts/page.njk
+title: Projects
+permalink: /projects/
+---
+{%- if collections.projects | length %}
+{%- for s in statuses %}
+{%- set group = collections.projects | byStatus(s.slug) %}
+{%- if group | length %}
+<section class="project-group">
+  <h2>{{ s.name }}</h2>
+  {%- set projectList = group %}
+  {% include "partials/project-list.njk" %}
+</section>
+{%- endif %}
+{%- endfor %}
+{%- else %}
+<p class="empty">No projects yet.</p>
+{%- endif %}

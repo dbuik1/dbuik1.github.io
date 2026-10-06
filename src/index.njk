@@ -14,3 +14,15 @@ layout: layouts/base.njk
   <p class="more"><a href="/blog/">All writing</a></p>
   {%- endif %}
 </section>
+
+{%- set active = collections.projects | byStatus("active") %}
+<section class="home-section">
+  <h2>Working on</h2>
+  {%- if active | length %}
+  {%- set projectList = active %}
+  {% include "partials/project-list.njk" %}
+  {%- else %}
+  <p class="empty">No active projects listed yet.</p>
+  {%- endif %}
+  <p class="more"><a href="/projects/">All projects</a></p>
+</section>

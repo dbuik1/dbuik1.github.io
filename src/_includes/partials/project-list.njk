@@ -1,0 +1,9 @@
+{#- Expects `projectList`. -#}
+<ul class="project-list">
+  {%- for proj in projectList %}
+  <li>
+    <a class="post-title" href="{{ proj.url }}">{{ proj.data.title }}</a>
+    {%- if proj.data.summary %}<span class="summary">{{ proj.data.summary }}</span>{% endif %}
+  </li>
+  {%- endfor %}
+</ul>

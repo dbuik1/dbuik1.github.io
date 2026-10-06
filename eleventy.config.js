@@ -2,10 +2,12 @@ import { feedPlugin } from "@11ty/eleventy-plugin-rss";
 import site from "./src/_data/site.js";
 import categories from "./src/_data/categories.js";
 import levels from "./src/_data/levels.js";
+import statuses from "./src/_data/statuses.js";
 
 const isDev = process.env.ELEVENTY_ENV === "development";
 const categorySlugs = categories.map((c) => c.slug);
 const levelSlugs = levels.map((l) => l.slug);
+const statusSlugs = statuses.map((s) => s.slug);
 
 function checkPost(item) {
   const file = item.inputPath;
@@ -21,6 +23,22 @@ function checkPost(item) {
   if (tags !== undefined && !Array.isArray(tags)) problems.push("`tags` must be a list, e.g. [faith, reading]");
   if (problems.length) throw new Error(`Post ${file}: ${problems.join("; ")}`);
 }
+
+function checkProject(item) {
+  const problems = [];
+  if (!item.data.title) problems.push("missing `title`");
+  if (!statusSlugs.includes(item.data.status)) {
+    problems.push(`\`status\` is "${item.data.status ?? ""}", expected one of: ${statusSlugs.join(", ")}`);
+  }
+  if (problems.length) throw new Error(`Project ${item.inputPath}: ${problems.join("; ")}`);
+}
+
+const projectsGlob = "src/projects/*.md";
+const allProjects = (api) => {
+  const projects = api.getFilteredByGlob(projectsGlob);
+  projects.forEach(checkProject);
+  return projects.sort((a, b) => a.data.title.localeCompare(b.data.title));
+};
 
 const postsGlob = "src/blog/*.md";
 const allPosts = (api) => {
@@ -40,7 +58,20 @@ export default function (eleventyConfig) {
     if (data.draft && !isDev) return false;
   });
 
-  eleventyConfig.addCollection("posts", allPosts);
+  eleventyConfig.addCollection("posts", (api) => {
+    const posts = allPosts(api);
+    const projectSlugs = allProjects(api).map((p) => p.fileSlug);
+    for (const post of posts) {
+      const project = post.data.project;
+      if (project !== undefined && !projectSlugs.includes(project)) {
+        throw new Error(
+          `Post ${post.inputPath}: \`project\` is "${project}", expected the file name of a project in src/projects/ (without .md): ${projectSlugs.join(", ") || "none yet"}`
+        );
+      }
+    }
+    return posts;
+  });
+  eleventyConfig.addCollection("projects", allProjects);
   for (const slug of categorySlugs) {
     eleventyConfig.addCollection(`category-${slug}`, (api) =>
       allPosts(api).filter((p) => p.data.category === slug)
@@ -63,6 +94,9 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("head", (array, n) => array.slice(0, n));
   eleventyConfig.addFilter("byField", (array, field, value) => array.filter((item) => item[field] === value));
   eleventyConfig.addFilter("withTag", (posts, tag) => posts.filter((p) => (p.data.tags ?? []).includes(tag)));
+  eleventyConfig.addFilter("byFileSlug", (items, slug) => items.filter((i) => i.fileSlug === slug));
+  eleventyConfig.addFilter("byStatus", (projects, status) => projects.filter((p) => p.data.status === status));
+  eleventyConfig.addFilter("byProject", (posts, slug) => posts.filter((p) => p.data.project === slug));
   eleventyConfig.addFilter("inSeries", (posts, series) => posts.filter((p) => p.data.series === series).reverse());
 
   const feedMeta = (subtitle) => ({

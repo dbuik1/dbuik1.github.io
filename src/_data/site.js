@@ -8,5 +8,6 @@ export default {
   nav: [
     { label: "Home", url: "/" },
     { label: "Writing", url: "/blog/" },
+    { label: "Projects", url: "/projects/" },
   ],
 };

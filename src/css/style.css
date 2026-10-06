@@ -142,3 +142,16 @@ main { display: grid; gap: 3rem; }
 .levels { margin: 0; display: grid; gap: 1rem; }
 .levels dt { font-weight: 700; color: var(--accent); }
 .levels dd { margin: 0.25rem 0 0; }
+
+/* Projects */
+.project-group { display: grid; gap: 0.75rem; }
+.project-group + .project-group { margin-top: 1.5rem; }
+.project-list { list-style: none; margin: 0; padding: 0; }
+.project-list li { display: grid; gap: 0.15rem; padding: 0.75rem 0; border-bottom: 1px solid var(--rule); }
+.project-list li:first-child { border-top: 1px solid var(--rule); }
+.summary { color: var(--muted); margin: 0; }
+.status { font-family: var(--font-label); border-radius: 2px; padding: 0 0.45em; border: 1px solid var(--rule); }
+.status-active { color: var(--accent); border-color: var(--accent); }
+.project-links { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-family: var(--font-label); }
+.post-meta .proj { color: var(--fg); text-decoration: none; }
+.post-meta .proj:hover { text-decoration: underline; }

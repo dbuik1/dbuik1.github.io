@@ -4,6 +4,7 @@
 <span class="post-meta">
   <time datetime="{{ p.date | isoDate }}">{{ p.date | readableDate }}</time>
   {%- if cat %}<a class="cat" href="/blog/{{ cat.slug }}/">{{ cat.name }}</a>{% endif %}
+  {%- if p.data.project %}{% set proj = collections.projects | byFileSlug(p.data.project) | first %}{% if proj %}<a class="proj" href="{{ proj.url }}">{{ proj.data.title }}</a>{% endif %}{% endif %}
   {%- if lvl %}<a class="level" href="/levels/#{{ lvl.slug }}">{{ lvl.name }}</a>{% endif %}
   {%- if p.data.draft %}<span class="draft">Draft</span>{% endif %}
 </span>

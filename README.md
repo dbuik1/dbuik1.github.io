@@ -65,6 +65,32 @@ Create the file in `src/blog/`, and the preview updates as you save. When you're
 
 Category names are in `src/_data/categories.js` and research level names in `src/_data/levels.js`. Change a `name` there and every page picks it up. The research levels page reads each level's `description` from the same file.
 
+## Annotating a passage
+
+Any post can annotate a phrase from the Westminster Confession, the Scots Confession or the Bible (BSB). Put the annotation on its own lines, straight after the paragraph it belongs to:
+
+```markdown
+The Confession grounds Scripture's authority in God, "for which it ought to be believed and obeyed".
+
+{% annotate "wcf 1.4", "for which it ought to be believed and obeyed", "qualified" %}
+Your note, in Markdown. It can run to several paragraphs, or be left empty.
+{% endannotate %}
+```
+
+The three values are:
+
+| Value | What to put |
+| --- | --- |
+| Passage | `wcf 1.4` (chapter.section), `scots 16` or `scots preface`, or a Bible reference such as `John 3:16` or `Romans 8:28-30` |
+| Phrase | Words copied exactly from the passage, long enough to appear only once in it. Straight and curly apostrophes count as the same |
+| Stance | `agree`, `disagree`, `qualified` or `note` |
+
+If the passage doesn't exist, or the phrase is missing or appears more than once, the build stops, names the post, and prints the passage so you can copy the phrase from it.
+
+Readers choose how annotations show with the Expanded / Compact switch under the post title, and their choice is remembered on their device. Expanded shows the passage, stance and note after the paragraph. Compact shows only a highlight that opens them in a popup. When the paragraph before the annotation quotes the phrase, that's the highlight; otherwise a small button takes its place.
+
+Every annotated passage gets its own page listing the posts that annotate it, at `/annotations/`. The texts themselves are in `texts/`.
+
 ## Adding a project
 
 Each project is one Markdown file in `src/projects/`. The file name becomes its address: `bible-app.md` is published at `/projects/bible-app/`.
@@ -104,6 +130,9 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/projects/` | Projects, plus the Projects page |
 | `src/colophon.njk`, `src/feeds.njk`, `src/404.njk` | Footer pages and the not-found page |
 | `src/changelog.njk` | Changelog, built automatically from the commit history |
+| `texts/` | Confession and Bible texts that posts can annotate |
+| `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
+| `src/annotations/` | The annotated passages pages |
 | `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |

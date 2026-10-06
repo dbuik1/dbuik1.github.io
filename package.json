@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.1.6",
-    "@11ty/eleventy-plugin-rss": "^3.1.0"
+    "@11ty/eleventy-plugin-rss": "^3.1.0",
+    "markdown-it": "^14.3.2"
   }
 }

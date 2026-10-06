@@ -6,6 +6,16 @@ layout: layouts/base.njk
   <header class="post-header">
     <h1>{{ title }}</h1>
     {% include "partials/post-meta.njk" %}
+    {%- if 'class="annotation"' in content %}
+    <div class="anno-toggle" hidden>
+      <span id="anno-mode-label">Annotations</span>
+      <div class="seg" role="group" aria-labelledby="anno-mode-label">
+        <button type="button" data-mode="expanded" aria-pressed="true">Expanded</button>
+        <button type="button" data-mode="compact" aria-pressed="false">Compact</button>
+      </div>
+    </div>
+    <script src="/js/annotations.js" defer></script>
+    {%- endif %}
   </header>
 
   {%- if series %}

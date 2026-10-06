@@ -3,6 +3,7 @@ import site from "./src/_data/site.js";
 import categories from "./src/_data/categories.js";
 import levels from "./src/_data/levels.js";
 import statuses from "./src/_data/statuses.js";
+import * as annotations from "./lib/annotations.js";
 
 const isDev = process.env.ELEVENTY_ENV === "development";
 const categorySlugs = categories.map((c) => c.slug);
@@ -52,6 +53,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/CNAME");
   eleventyConfig.addPassthroughCopy("src/app-ads.txt");
   eleventyConfig.addPassthroughCopy("src/css");
+  eleventyConfig.addPassthroughCopy("src/js");
 
   // Posts marked `draft: true` appear under `npm start` but never in the published site.
   eleventyConfig.addPreprocessor("drafts", "*", (data) => {
@@ -84,6 +86,21 @@ export default function (eleventyConfig) {
     }
     return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name));
   });
+
+  // {% annotate "wcf 1.4", "exact phrase", "qualified" %}Your note{% endannotate %}
+  eleventyConfig.addPairedShortcode("annotate", function (note, ref, phrase, stance) {
+    try {
+      return annotations.render(note, ref, phrase, stance, this.page.url);
+    } catch (e) {
+      throw new Error(`Post ${this.page.inputPath}: annotation ${e.message}`);
+    }
+  });
+  eleventyConfig.addTransform("annotations", function (content) {
+    return (this.page.outputPath || "").endsWith(".html") ? annotations.linkInlinePhrases(content) : content;
+  });
+  eleventyConfig.addCollection("annotations", (api) => annotations.collect(allPosts(api)));
+  eleventyConfig.addGlobalData("stances", annotations.stances);
+  eleventyConfig.addFilter("stanceName", annotations.stanceName);
 
   eleventyConfig.addGlobalData("year", () => new Date().getFullYear());
 

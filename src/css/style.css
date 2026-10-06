@@ -6,6 +6,11 @@
   --rule: #e2e0e2;
   --accent: #a3182b;
   --placeholder-bg: #f0eff0;
+  --mark: #f6e6ad;
+  --agree-bg: #e3efe4; --agree-fg: #2c6236;
+  --disagree-bg: #f8e1e4; --disagree-fg: #a3182b;
+  --qualified-bg: #f4ead2; --qualified-fg: #74540a;
+  --shadow: 0 10px 30px rgba(30, 20, 25, 0.18);
 
   --font-display: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
   --font-body: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
@@ -23,6 +28,11 @@
     --rule: #302c30;
     --accent: #e8707f;
     --placeholder-bg: #221f22;
+    --mark: #54451a;
+    --agree-bg: #1e3222; --agree-fg: #9fd1a8;
+    --disagree-bg: #3a1c21; --disagree-fg: #f0a1ab;
+    --qualified-bg: #372d16; --qualified-fg: #e3c27a;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -164,3 +174,45 @@ main { display: grid; gap: 3rem; }
 .project-links { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-family: var(--font-label); }
 .post-meta .proj { color: var(--fg); text-decoration: none; }
 .post-meta .proj:hover { text-decoration: underline; }
+
+/* Annotations. Expanded shows each figure in the text; Compact (html[data-annotations="compact"])
+   hides the figures and opens them as popups from the highlighted phrase or a small button. */
+mark, .anno-phrase { background: var(--mark); color: inherit; padding: 0 0.1em; border-radius: 2px; }
+figure.annotation { margin: 0.5rem 0 1.5rem; display: grid; gap: 0.5rem; }
+figure.annotation blockquote, .anno-pop blockquote, blockquote.passage { margin: 0; padding-left: 1rem; border-left: 3px solid var(--rule); }
+figure.annotation blockquote p, .anno-pop blockquote p, blockquote.passage p { margin: 0 0 0.5rem; }
+figure.annotation blockquote p:last-child, .anno-pop blockquote p:last-child, blockquote.passage p:last-child { margin: 0; }
+figure.annotation figcaption { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: center; font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); }
+.anno-note { padding-left: 1rem; }
+.anno-note p { margin: 0 0 0.5rem; }
+.anno-note p:last-child { margin: 0; }
+
+.stance { display: inline-block; font-family: var(--font-label); font-size: 0.8125rem; font-weight: 500; padding: 0.05em 0.6em; border-radius: 999px; background: var(--placeholder-bg); color: var(--muted); }
+.stance-agree { background: var(--agree-bg); color: var(--agree-fg); }
+.stance-disagree { background: var(--disagree-bg); color: var(--disagree-fg); }
+.stance-qualified { background: var(--qualified-bg); color: var(--qualified-fg); }
+
+.anno-toggle:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { font: inherit; color: var(--fg); background: transparent; border: 0; padding: 0.2rem 0.7rem; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.anno-chip { display: none; }
+html[data-annotations="compact"] figure.annotation { display: none; }
+html[data-annotations="compact"] .anno-phrase { cursor: pointer; border-bottom: 1px dashed var(--accent); }
+html[data-annotations="compact"] .anno-phrase:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html[data-annotations="compact"] .anno-chip { display: inline-block; margin: 0 0 1rem; font: inherit; font-family: var(--font-label); font-size: 0.875rem; color: var(--accent); background: transparent; border: 1px solid var(--rule); border-radius: 999px; padding: 0.15rem 0.7rem; cursor: pointer; }
+
+.anno-pop { margin: auto; inset: 0; width: min(34rem, calc(100vw - 32px)); max-height: min(80vh, 40rem); overflow: auto; background: var(--bg); color: var(--fg); border: 1px solid var(--rule); border-radius: 10px; padding: 1.25rem; box-shadow: var(--shadow); }
+.anno-pop:popover-open { display: grid; gap: 0.75rem; justify-items: start; }
+.anno-pop::backdrop { background: rgba(10, 8, 10, 0.35); }
+.anno-pop > blockquote, .anno-pop > .anno-note { justify-self: stretch; }
+.anno-pop-top { justify-self: stretch; display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-family: var(--font-label); font-size: 0.875rem; }
+.anno-close { font: inherit; color: var(--accent); background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 0.2rem 0.6rem; cursor: pointer; }
+
+.anno-entries { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.anno-entries li { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: baseline; }
+.anno-entries time, .anno-entries q, .muted { color: var(--muted); font-size: 0.9375rem; }
+.anno-entries q { flex-basis: 100%; }

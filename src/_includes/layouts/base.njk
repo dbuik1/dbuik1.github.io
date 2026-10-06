@@ -37,6 +37,11 @@
 
     <footer class="site-footer">
       <span>© {{ year }} {{ site.author }}</span>
+      <nav aria-label="Site">
+        {%- for item in site.footer %}
+        <a href="{{ item.url }}"{% if item.url == page.url %} aria-current="page"{% endif %}>{{ item.label }}</a>
+        {%- endfor %}
+      </nav>
     </footer>
   </div>
 </body>

@@ -96,12 +96,14 @@ The Projects page groups projects by status, and active ones also appear on the 
 
 | Path | What it is |
 | --- | --- |
-| `src/_data/site.js` | Site title, description, URL, navigation |
+| `src/_data/site.js` | Site title, description, URL, main and footer navigation |
 | `src/_includes/layouts/base.njk` | The page shell shared by every page |
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
 | `src/blog/` | Posts, plus the Writing and category pages |
 | `src/projects/` | Projects, plus the Projects page |
+| `src/colophon.njk`, `src/feeds.njk`, `src/404.njk` | Footer pages and the not-found page |
+| `src/changelog.njk` | Changelog, built automatically from the commit history |
 | `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |

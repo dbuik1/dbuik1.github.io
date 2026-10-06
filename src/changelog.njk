@@ -1,0 +1,19 @@
+---
+layout: layouts/page.njk
+title: Changelog
+description: Every change to this site, newest first.
+permalink: /changelog/
+---
+<p class="lede">Every change to this site, newest first, taken from its <a href="{{ site.repo }}">source history</a>.</p>
+{%- for day in changelog %}
+<section class="changelog-day">
+  <h2><time datetime="{{ day.date }}">{{ day.date | readableDate }}</time></h2>
+  <ul>
+    {%- for c in day.commits %}
+    <li>{{ c.subject }} <a class="commit" href="{{ site.repo }}/commit/{{ c.hash }}">{{ c.short }}</a></li>
+    {%- endfor %}
+  </ul>
+</section>
+{%- else %}
+<p>No history available.</p>
+{%- endfor %}

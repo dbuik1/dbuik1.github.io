@@ -4,10 +4,16 @@ export default {
   url: "https://davidbuik.com",
   author: "David Buik",
   language: "en",
+  repo: "https://github.com/dbuik1/dbuik1.github.io",
   // Sections are added here as they are built.
   nav: [
     { label: "Home", url: "/" },
     { label: "Writing", url: "/blog/" },
     { label: "Projects", url: "/projects/" },
+  ],
+  footer: [
+    { label: "Feeds", url: "/feeds/" },
+    { label: "Colophon", url: "/colophon/" },
+    { label: "Changelog", url: "/changelog/" },
   ],
 };

@@ -5,3 +5,12 @@ layout: layouts/base.njk
   <h1><span class="placeholder-inline">[Your one-line introduction]</span></h1>
   <p class="placeholder">[A short paragraph about you, in your words]</p>
 </section>
+
+<section class="home-section">
+  <h2>Recent writing</h2>
+  {%- set postList = collections.posts | head(5) %}
+  {% include "partials/post-list.njk" %}
+  {%- if collections.posts | length > 5 %}
+  <p class="more"><a href="/blog/">All writing</a></p>
+  {%- endif %}
+</section>

@@ -1,0 +1,9 @@
+{#- Expects `p` (a post) in scope. -#}
+{%- set cat = categories | byField("slug", p.data.category) | first -%}
+{%- set lvl = levels | byField("slug", p.data.level) | first -%}
+<span class="post-meta">
+  <time datetime="{{ p.date | isoDate }}">{{ p.date | readableDate }}</time>
+  {%- if cat %}<a class="cat" href="/blog/{{ cat.slug }}/">{{ cat.name }}</a>{% endif %}
+  {%- if lvl %}<a class="level" href="/levels/#{{ lvl.slug }}">{{ lvl.name }}</a>{% endif %}
+  {%- if p.data.draft %}<span class="draft">Draft</span>{% endif %}
+</span>

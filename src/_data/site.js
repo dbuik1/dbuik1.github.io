@@ -5,5 +5,8 @@ export default {
   author: "David Buik",
   language: "en",
   // Sections are added here as they are built.
-  nav: [{ label: "Home", url: "/" }],
+  nav: [
+    { label: "Home", url: "/" },
+    { label: "Writing", url: "/blog/" },
+  ],
 };

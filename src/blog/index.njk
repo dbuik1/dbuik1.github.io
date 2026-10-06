@@ -1,0 +1,14 @@
+---
+layout: layouts/page.njk
+title: Writing
+permalink: /blog/
+---
+<nav class="filters" aria-label="Categories">
+  <a href="/blog/" aria-current="page">All</a>
+  {%- for c in categories %}
+  <a href="/blog/{{ c.slug }}/">{{ c.name }}</a>
+  {%- endfor %}
+  <a href="/tags/">Tags</a>
+</nav>
+{%- set postList = collections.posts %}
+{% include "partials/post-list.njk" %}

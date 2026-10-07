@@ -138,6 +138,7 @@
         <button type="button" data-cmd="bullets" title="Bulleted list">• List</button>
         <button type="button" data-cmd="numbers" title="Numbered list">1. List</button>
         <button type="button" data-cmd="link" title="Link (Ctrl+K)">Link</button>
+        <button type="button" data-cmd="xref" title="Link to another post or project (or type [[)">Cross-link</button>
         <span class="toolbar-gap"></span>
         <button type="button" data-cmd="image" class="insert-button" title="Insert an image">Image</button>
         <button type="button" data-cmd="footnote" class="insert-button" title="Add a footnote at the cursor" data-kinds="post project">Footnote</button>
@@ -259,6 +260,29 @@
       <footer class="picker-foot">
         <button type="button" class="link-button" id="cite-remove" hidden>Remove citation</button>
         <button type="submit" class="primary" id="cite-save" disabled>Insert citation</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="xref-dialog" class="picker" aria-labelledby="xref-title">
+    <form method="dialog" class="picker-form" id="xref-form">
+      <header class="picker-head">
+        <h2 id="xref-title">Link to a post or project</h2>
+        <button type="button" class="link-button" data-close>Cancel</button>
+      </header>
+      <label class="search-field wide-search">Find <input id="xref-search" type="search" placeholder="Title" autocomplete="off"></label>
+      <ul class="search-results" id="xref-results"></ul>
+      <div id="xref-step" class="xref-step" hidden>
+        <p class="picker-step">To link to particular words in <strong id="xref-chosen-title"></strong>, select them below. <button type="button" class="link-button subtle" id="xref-clear-words" hidden>Link to the whole page instead</button></p>
+        <blockquote class="passage picker-passage" id="xref-passage"></blockquote>
+        <p class="phrase-state" id="xref-state" aria-live="polite"></p>
+        <label class="note-field"><span>Link text <span class="muted">(optional; the title is used if empty)</span></span>
+          <input id="xref-text" autocomplete="off">
+        </label>
+      </div>
+      <footer class="picker-foot">
+        <button type="button" class="link-button" id="xref-remove" hidden>Remove link</button>
+        <button type="submit" class="primary" id="xref-save" disabled>Insert link</button>
       </footer>
     </form>
   </dialog>

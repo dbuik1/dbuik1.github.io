@@ -7,6 +7,7 @@ import { Figure } from "./figure.js";
 import { Footnote, Citation } from "./notes.js";
 import { initDialogs, loadLibrary, citationLabel, openImage, openFootnote, openCite } from "./dialogs.js";
 import { initLibrary, showLibrary } from "./library.js";
+import { Xref, initXref, loadTargets, openXref } from "./xref.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -25,7 +26,8 @@ const meta = await api("GET", "/api/meta");
 initPicker(meta, api);
 initDialogs(api);
 initLibrary(api);
-await loadLibrary().catch(() => {});
+initXref(api);
+await Promise.all([loadLibrary().catch(() => {}), loadTargets().catch(() => {})]);
 
 // ---- Passage lookups, cached for the annotation cards ----
 const passageCache = new Map();
@@ -54,6 +56,7 @@ const editor = new Editor({
     Figure.configure({ onEdit: (attrs, update) => openImage(attrs, update) }),
     Footnote.configure({ onEdit: (attrs, update) => openFootnote(attrs, update) }),
     Citation.configure({ onEdit: (attrs, update) => openCite(attrs, update), label: citationLabel }),
+    Xref.configure({ onEdit: (attrs, update) => openXref(attrs, update, true), onTrigger: () => crossLink() }),
   ],
   editorProps: {
     attributes: { class: "prose", "aria-label": "Text", spellcheck: "true" },
@@ -419,6 +422,12 @@ function cite() {
   const at = editor.state.selection.to;
   openCite(null, (attrs) => attrs && editor.chain().focus().insertContentAt(at, { type: "citation", attrs }).run());
 }
+// Selected text becomes the link text and is replaced by the link.
+function crossLink() {
+  const { from, to } = editor.state.selection;
+  const text = editor.state.doc.textBetween(from, to, " ");
+  openXref({ text }, (attrs) => attrs && editor.chain().focus().insertContentAt({ from, to }, { type: "xref", attrs }).run());
+}
 function annotate() {
   openPicker(null, (attrs) => {
     // Annotations sit after the paragraph they belong to.
@@ -435,6 +444,7 @@ document.querySelector(".toolbar").addEventListener("click", (e) => {
   if (cmd === "image") return insertImage();
   if (cmd === "footnote") return footnote();
   if (cmd === "cite") return cite();
+  if (cmd === "xref") return crossLink();
   commands[cmd](editor.chain().focus()).run();
 });
 editor.on("selectionUpdate", updateToolbar);

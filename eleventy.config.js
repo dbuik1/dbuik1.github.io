@@ -7,6 +7,8 @@ import { eleventyImageTransformPlugin } from "@11ty/eleventy-img";
 import * as annotations from "./lib/annotations.js";
 import * as references from "./lib/references.js";
 import * as texts from "./lib/texts.js";
+import * as xref from "./lib/xref.js";
+import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
 
 const isDev = process.env.ELEVENTY_ENV === "development";
@@ -109,6 +111,14 @@ export default function (eleventyConfig) {
     return posts;
   });
   eleventyConfig.addCollection("projects", allProjects);
+  // slug → posts that link to it with [[slug]], newest first.
+  eleventyConfig.addCollection("backlinks", (api) => {
+    const map = {};
+    for (const post of allPosts(api)) {
+      for (const slug of new Set(xref.linksIn(readFileSync(post.inputPath, "utf8")))) (map[slug] ??= []).push(post);
+    }
+    return map;
+  });
   for (const slug of categorySlugs) {
     eleventyConfig.addCollection(`category-${slug}`, (api) =>
       allPosts(api).filter((p) => p.data.category === slug)

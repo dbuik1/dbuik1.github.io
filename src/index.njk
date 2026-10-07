@@ -8,9 +8,10 @@ layout: layouts/base.njk
 
 <section class="home-section">
   <h2>Recent writing</h2>
-  {%- set postList = collections.posts | head(5) %}
+  {#- Seeds are left out here; they're listed on the Writing page. -#}
+  {%- set postList = collections.writing | head(5) %}
   {% include "partials/post-list.njk" %}
-  {%- if collections.posts | length > 5 %}
+  {%- if collections.posts | length > postList | length %}
   <p class="more"><a href="/blog/">All writing</a></p>
   {%- endif %}
 </section>

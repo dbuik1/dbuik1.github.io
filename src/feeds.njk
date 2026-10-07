@@ -6,8 +6,9 @@ permalink: /feeds/
 ---
 <p class="lede">Paste one of these addresses into a feed reader to get new posts as they appear.</p>
 <ul class="feed-list">
-  <li><a href="/feed.xml">All writing</a> <code>{{ site.url }}/feed.xml</code></li>
-  {%- for c in categories %}
-  <li><a href="/blog/{{ c.slug }}/feed.xml">{{ c.name }}</a> <code>{{ site.url }}/blog/{{ c.slug }}/feed.xml</code></li>
+  {%- set seedLevel = levels | byField("oneLine", true) | first %}
+  <li><a href="/feed.xml">All writing</a>{% if seedLevel %} <span class="feed-note">except {{ seedLevel.name | lower }}s, which have their own feed</span>{% endif %} <code>{{ site.url }}/feed.xml</code></li>
+  {%- for l in levels | reverse %}
+  <li><a href="/blog/{{ l.slug }}/feed.xml">{{ l.name }}{% if l.oneLine %} (one-line ideas){% endif %}</a> <code>{{ site.url }}/blog/{{ l.slug }}/feed.xml</code></li>
   {%- endfor %}
 </ul>

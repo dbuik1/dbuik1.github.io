@@ -83,7 +83,6 @@ let dirty = false;
 
 const fields = {
   title: $("title"),
-  category: $("category"),
   level: $("level"),
   description: $("description"),
   slug: $("slug"),
@@ -97,11 +96,11 @@ let tags = [];
 let links = [];
 
 const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
-fields.category.append(option("", "Choose…"), ...meta.categories.map((c) => option(c.slug, c.name)));
 fields.level.append(option("", "Choose…"), ...meta.levels.map((l) => option(l.slug, l.name)));
 fields.project.append(...meta.projects.map((p) => option(p.slug, p.title || p.slug)));
 fields.status.append(option("", "Choose…"), ...meta.statuses.map((x) => option(x.slug, x.name)));
 $("tag-options").append(...meta.tags.map((t) => option(t, t)));
+$("seed-tag-options").append(...meta.tags.map((t) => option(t, t)));
 $("series-options").append(...meta.series.map((s) => option(s, s)));
 
 const slugify = (s) =>
@@ -187,7 +186,19 @@ fields.slug.addEventListener("input", () => {
   slugTouched = true;
   changed();
 });
-for (const el of [fields.category, fields.level, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline]) {
+// A seed is only its title; moving a published post to another level is recorded with the date.
+function levelHint() {
+  const hint = $("level-hint");
+  const level = meta.levels.find((l) => l.slug === fields.level.value);
+  const live = meta.levels.find((l) => l.slug === doc?.liveLevel);
+  let text = "";
+  if (live && level && live.slug !== level.slug) text = `Publishing moves this from ${live.name} to ${level.name} and shows the date it got there.`;
+  else if (level?.oneLine) text = `The title is the whole ${level.name.toLowerCase()}. Text below it is optional.`;
+  hint.textContent = text;
+  hint.hidden = !text;
+}
+fields.level.addEventListener("change", levelHint);
+for (const el of [fields.level, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline]) {
   el.addEventListener("input", changed);
 }
 
@@ -219,7 +230,6 @@ function collect() {
   const m = {
     ...(doc?.meta ?? {}),
     title: fields.title.value.trim(),
-    category: fields.category.value,
     level: fields.level.value,
     tags: [...tags],
     description: fields.description.value.trim(),
@@ -268,8 +278,8 @@ function fill(d) {
   renderLinks();
   $("slug-prefix").textContent = kind === "project" ? "/projects/" : "/blog/";
   fields.title.value = m.title ?? "";
-  fields.category.value = m.category ?? "";
   fields.level.value = m.level ?? "";
+  levelHint();
   fields.description.value = m.description ?? "";
   fields.project.value = m.project ?? "";
   fields.series.value = m.series ?? "";
@@ -558,6 +568,48 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ---- Seeds: one-line ideas published straight from the home screen ----
+const seedLevel = meta.levels.find((l) => l.oneLine);
+if (!seedLevel) $("seed-form").hidden = true;
+else $("seed-label").textContent = `Add a ${seedLevel.name.toLowerCase()}`;
+$("seed-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = $("seed-title").value.trim();
+  if (!title) return;
+  const button = $("seed-publish");
+  const state = $("seed-state");
+  button.disabled = true;
+  button.textContent = "Checking…";
+  state.hidden = true;
+  try {
+    const seedTags = [...new Set($("seed-tags").value.split(",").map((t) => t.trim()).filter(Boolean))];
+    const result = await api("POST", "/api/publish", {
+      kind: "post",
+      file: null,
+      meta: { title, level: seedLevel.slug, tags: seedTags, slug: slugify(title) },
+      body: "",
+    });
+    state.className = `seed-state ${result.pushed ? "ok" : "warn"}`;
+    state.replaceChildren(
+      result.pushed
+        ? `“${title}” is published and will be live in about a minute. `
+        : `“${title}” is committed on this computer but couldn't be pushed, so it isn't live yet. Run git push in the site folder. `,
+      Object.assign(document.createElement("a"), { href: result.url, target: "_blank", rel: "noopener", textContent: "Open it" })
+    );
+    $("seed-title").value = "";
+    $("seed-tags").value = "";
+    showHome();
+  } catch (err) {
+    state.className = "seed-state error";
+    state.textContent = err.message;
+  } finally {
+    state.hidden = false;
+    button.disabled = false;
+    button.textContent = "Publish";
+    $("seed-title").focus();
+  }
+});
+
 // ---- Views ----
 const VIEWS = ["home", "site", "references", "write"];
 function showView(id) {
@@ -601,7 +653,8 @@ async function showHome() {
       const li = document.createElement("li");
       const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: p.title });
       open.addEventListener("click", () => openPost(p.file));
-      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: p.date + (p.draft ? " · hidden draft" : "") }));
+      const level = meta.levels.find((l) => l.slug === p.level)?.name;
+      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: [p.date, level, p.draft && "hidden draft"].filter(Boolean).join(" · ") }));
       return li;
     })
   );

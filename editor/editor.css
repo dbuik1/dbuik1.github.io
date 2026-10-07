@@ -259,3 +259,17 @@ select, .details input, .more input, .picker input, .picker textarea {
 #content .prose .selectedCell { background: var(--placeholder-bg); }
 #content .prose td, #content .prose th { min-width: 3rem; }
 .editor-html-preview.is-code { font: 0.8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); white-space: pre-wrap; }
+
+/* Seeds: one-line ideas from the home screen */
+.seed-form { display: grid; gap: 0.35rem; margin: 1.5rem 0 0; font-family: var(--font-label); }
+.seed-form label { font-weight: 500; }
+.seed-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.seed-row input { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0.4rem 0.6rem; }
+#seed-title { flex: 2 1 18rem; }
+#seed-tags { flex: 1 1 12rem; }
+.seed-row input:focus { outline: none; border-color: var(--accent); }
+.seed-state { margin: 0; border-radius: 6px; padding: 0.5rem 0.75rem; }
+.seed-state.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.seed-state.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.seed-state.error { background: var(--error-bg); color: var(--error-fg); white-space: pre-wrap; }
+.level-hint { flex-basis: 100%; margin: 0; }

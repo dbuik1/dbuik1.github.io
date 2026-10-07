@@ -20,12 +20,15 @@ npm run write    # then open http://127.0.0.1:8081/
 ```
 
 - **New post** opens a blank post. Write in the box as you would in any word processor; the toolbar has headings, quotes, lists and links.
-- Category, research level and tags sit under the title. Description, address, project and series are under **More details**.
+- Research level and tags sit under the title. Description, address, project and series are under **More details**.
 - **Image** inserts a picture after the paragraph you're in. You can also paste or drag one into the text. Every image needs a short description for people who can't see it; the caption is optional. Images are saved in `src/images/` and committed with the post that uses them.
 - **Footnote** adds a numbered note at the cursor.
 - **Cite** adds a citation from your reference library at the cursor, with an optional page, chapter, section or paragraph. Citations become footnotes in Chicago notes style: the full reference the first time a source is cited, a short form after that. A post that cites anything gets a bibliography at the end. You can add a new source from the Cite box without leaving the post.
 - **Cross-link** (or typing `[[`) links to another post or project. Pick it, then optionally select exact words in it to link to just those; selected text in your post becomes the link text. Readers get a preview card on hover, focus or tap, and clicking opens the linked page over the current one, with Back (or Esc) returning to where they were. Each post lists the posts that link to it under "Linked from".
 - **Annotate** adds an annotation after the paragraph you're in. Choose the Westminster Confession, the Scots Confession or the Bible, find the passage (or search for it), then select the words you're annotating. It only accepts words that appear once in the passage, so annotations can't break the build.
+- **Add a seed** on the home screen publishes a one-line idea straight away: type the idea, add tags if you like, and press Publish. To develop one later, open it from Published, write the text and choose a higher research level.
+- Tags can be nested with a slash, like `theology/church`. The suggestions include every tag already in use.
+- When you publish a live post at a different research level, the post shows the date it reached that level ("Explored since 10 November 2026"). The editor says so before you publish.
 - Drafts save automatically into `drafts/` on your computer. That folder is never committed, so drafts stay private until you publish.
 - **Publish** checks that the site still builds with the post, then commits it to `main` and pushes it, using your own git login. The site updates about a minute later. The repository must be on `main`.
 - Opening a published post edits a private copy; **Update live post** publishes the changes.
@@ -46,9 +49,8 @@ Start the file with this block, then write the post below it in Markdown:
 ```markdown
 ---
 title: On Scripture
-category: theology
 level: explored
-tags: [westminster, scripture]
+tags: [theology/scripture, westminster]
 description: One line for link previews and search results.
 ---
 
@@ -58,13 +60,15 @@ Your post starts here.
 | Field | Required | What to put |
 | --- | --- | --- |
 | `title` | Yes | The post's title |
-| `category` | Yes | `theology`, `thinking` or `projects` |
-| `level` | Yes | `passing` (Passing thought), `explored` (Explored) or `researched` (Researched) |
-| `tags` | No | Any words, in square brackets, separated by commas |
+| `level` | Yes | `seed` (Seed), `passing` (Passing thought), `explored` (Explored) or `researched` (Researched) |
+| `tags` | No | Any words, in square brackets, separated by commas. Nest them with a slash: `theology/church` also files the post under `theology` |
+| `history` | No | Written by the editor when a published post changes level: a list of `level` and `date` pairs. The post shows the date of the last one |
 | `description` | No | One line for link previews |
 | `series` | No | The same name on several posts links them as a numbered series |
 | `project` | No | A project's file name without `.md`, e.g. `example-project`; the post then shows on that project's page |
 | `draft` | No | `true` keeps the post off the live site; remove the line to publish |
+
+Writing is grouped by research level: the Writing page lists Researched first and seeds last, and each level has its own page and feed at `/blog/<level>/`. A seed is a one-line idea: its title is the idea and the text below the front matter can be left empty.
 
 If a required field is missing or misspelled, the build stops and names the file and field. The live site stays as it was until it's fixed.
 
@@ -90,7 +94,7 @@ Create the file in `src/blog/`, and the preview updates as you save. When you're
 
 ### Changing the labels
 
-Category names are in `src/_data/categories.js` and research level names in `src/_data/levels.js`. Change a `name` there and every page picks it up. Each level's description is site text in `src/_text/level-<slug>.md`, edited in the editor under **Site text and projects**.
+Research level names are in `src/_data/levels.js`. Change a `name` there and every page picks it up. Each level's description is site text in `src/_text/level-<slug>.md`, edited in the editor under **Site text and projects**.
 
 ### Images, footnotes and citations
 
@@ -172,7 +176,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `references/` | The reference library (`library.bib`), the Chicago notes citation style and its British English locale (both from the [Citation Style Language](https://citationstyles.org) project, CC BY-SA 3.0) |
 | `lib/references.js`, `lib/markdown.js` | Citations and bibliographies, figures and footnotes |
 | `lib/xref.js`, `src/js/xref.js` | Cross-links and their build checks, and the preview cards and reading overlay |
-| `src/blog/` | Posts, plus the Writing and category pages |
+| `src/blog/` | Posts, plus the Writing page and a page per research level |
 | `src/projects/` | Projects, plus the Projects page |
 | `src/colophon.njk`, `src/feeds.njk`, `src/404.njk` | Footer pages and the not-found page |
 | `src/changelog.njk` | Changelog, built automatically from the commit history |
@@ -182,7 +186,8 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, projects, site text, images and the reference library; the rest is the page |
 | `tools/chokidar-globs/` | A small stand-in for the file watcher behind `npm start`, so the project has no known security warnings. Leave it in place |
 | `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts and projects after each build |
-| `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |
+| `src/_data/levels.js`, `statuses.js` | Research level and project status names |
+| `lib/tags.js` | Nested tags: their pages, counts and checks |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |
 
@@ -192,7 +197,7 @@ Text in a grey box marked `[...]` is waiting to be written.
 
 Every push to `main` builds the site and publishes it through `.github/workflows/deploy.yml`. Pull requests are build-checked by `.github/workflows/check.yml`.
 
-Feeds: `/feed.xml` for everything, and `/blog/<category>/feed.xml` for each category.
+Feeds: `/feed.xml` for all writing except seeds, and `/blog/<level>/feed.xml` for each research level.
 
 One-time setup:
 

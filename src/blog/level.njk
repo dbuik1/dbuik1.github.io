@@ -1,0 +1,25 @@
+---
+layout: layouts/page.njk
+pagination:
+  data: levels
+  size: 1
+  alias: lvl
+permalink: "/blog/{{ lvl.slug }}/"
+eleventyComputed:
+  title: "{{ lvl.name }}"
+---
+<div class="level-intro">{{ ("level-" + lvl.slug) | siteText | safe }}</div>
+<nav class="filters" aria-label="Research levels">
+  <a href="/blog/">All writing</a>
+  {%- for l in levels | reverse %}
+  <a href="/blog/{{ l.slug }}/"{% if l.slug == lvl.slug %} aria-current="page"{% endif %}>{{ l.name }}</a>
+  {%- endfor %}
+  <a href="/tags/">Tags</a>
+</nav>
+{%- set postList = collections["level-" + lvl.slug] %}
+{%- if lvl.oneLine %}
+{% include "partials/seed-list.njk" %}
+{%- else %}
+{% include "partials/post-list.njk" %}
+{%- endif %}
+<p class="subscribe"><a href="/blog/{{ lvl.slug }}/feed.xml">Subscribe to {{ lvl.name }}</a></p>

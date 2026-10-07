@@ -1,8 +1,8 @@
-{#- Expects `postList`. -#}
+{#- Expects `postList`. Seeds in a mixed list (a tag page, say) show on one line. -#}
 {%- if postList | length %}
 <ul class="post-list">
   {%- for p in postList %}
-  <li>
+  <li{% if p.data.level | isOneLine %} class="is-seed"{% endif %}>
     <a class="post-title" href="{{ p.url }}">{{ p.data.title }}</a>
     {% include "partials/post-meta.njk" %}
   </li>

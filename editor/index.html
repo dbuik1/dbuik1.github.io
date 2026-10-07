@@ -22,6 +22,17 @@
         <button type="button" class="link-button" id="go-site">Site text and projects</button>
         <button type="button" class="link-button" id="go-references">Reference library</button>
       </nav>
+      <form class="seed-form" id="seed-form">
+        <label for="seed-title" id="seed-label">Add a seed</label>
+        <div class="seed-row">
+          <input id="seed-title" placeholder="An idea in one line" autocomplete="off" required>
+          <input id="seed-tags" list="seed-tag-options" placeholder="Tags, separated by commas" aria-label="Tags for the seed, separated by commas" autocomplete="off">
+          <datalist id="seed-tag-options"></datalist>
+          <button type="submit" class="secondary" id="seed-publish">Publish</button>
+        </div>
+        <p class="hint" id="seed-hint">Goes live straight away. Open it from Published to write more or move it up a level.</p>
+        <p class="seed-state" id="seed-state" role="status" hidden></p>
+      </form>
       <section class="home-section">
         <h2>Drafts</h2>
         <p class="lede">Saved only on this computer until you publish.</p>
@@ -98,7 +109,6 @@
       </div>
 
       <div class="details" data-kinds="post">
-        <label>Category <select id="category"></select></label>
         <label>Research level <select id="level"></select></label>
         <div class="tags-field">
           <span class="tags-label" id="tags-label">Tags</span>
@@ -106,6 +116,7 @@
           <input id="tag-input" list="tag-options" placeholder="Add a tag" aria-label="Add a tag" autocomplete="off">
           <datalist id="tag-options"></datalist>
         </div>
+        <p class="hint level-hint" id="level-hint" hidden></p>
       </div>
       <div class="details" data-kinds="project">
         <label>Status <select id="status"></select></label>

@@ -10,6 +10,25 @@ npm start        # dev server at http://localhost:8080, drafts included
 npm run build    # production build into _site/
 ```
 
+## Writing with the editor
+
+The easiest way to write is the site's own editor, which runs on your computer:
+
+```sh
+npm install      # once
+npm run write    # then open http://127.0.0.1:8081/
+```
+
+- **New post** opens a blank post. Write in the box as you would in any word processor; the toolbar has headings, quotes, lists and links.
+- Category, research level and tags sit under the title. Description, address, project and series are under **More details**.
+- **Annotate** adds an annotation after the paragraph you're in. Choose the Westminster Confession, the Scots Confession or the Bible, find the passage (or search for it), then select the words you're annotating. It only accepts words that appear once in the passage, so annotations can't break the build.
+- Drafts save automatically into `drafts/` on your computer. That folder is never committed, so drafts stay private until you publish.
+- **Publish** checks that the site still builds with the post, then commits it to `main` and pushes it, using your own git login. The site updates about a minute later. The repository must be on `main`.
+- Opening a published post edits a private copy; **Update live post** publishes the changes.
+- Posts containing raw HTML can't be edited here, because the editor would drop the HTML. The editor says so when you open one.
+
+The rest of this section describes the file format the editor writes, for editing by hand.
+
 ## Writing a post
 
 Each post is one Markdown file in `src/blog/`, named `YYYY-MM-DD-short-name.md`. The date in the name is the post's date, and the rest becomes its address: `2026-10-07-on-scripture.md` is published at `/blog/on-scripture/`.
@@ -133,6 +152,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `texts/` | Confession and Bible texts that posts can annotate |
 | `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
 | `src/annotations/` | The annotated passages pages |
+| `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, the rest is the page |
 | `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts and projects after each build |
 | `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |

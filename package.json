@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run build && ELEVENTY_ENV=development eleventy --serve",
     "build": "eleventy && pagefind --site _site",
+    "write": "node editor/server.js",
     "clean": "rm -rf _site"
   },
   "engines": {
@@ -14,7 +15,13 @@
   "devDependencies": {
     "@11ty/eleventy": "^3.1.6",
     "@11ty/eleventy-plugin-rss": "^3.1.0",
+    "@tiptap/core": "^3.31.4",
+    "@tiptap/markdown": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
+    "gray-matter": "^4.0.3",
     "markdown-it": "^14.3.2",
-    "pagefind": "^1.5.2"
+    "pagefind": "^1.5.2",
+    "vite": "^8.3.3"
   }
 }

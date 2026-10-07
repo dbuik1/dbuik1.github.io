@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Write · David Buik</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+  <div class="site">
+    <!-- Home: start a post or open one -->
+    <main id="home" class="view">
+      <header class="home-head">
+        <h1>Writing</h1>
+        <button type="button" class="primary" id="new-post">New post</button>
+      </header>
+      <section class="home-section">
+        <h2>Drafts</h2>
+        <p class="lede">Saved only on this computer until you publish.</p>
+        <ul class="doc-list" id="draft-list"></ul>
+      </section>
+      <section class="home-section">
+        <h2>Published</h2>
+        <ul class="doc-list" id="post-list"></ul>
+      </section>
+    </main>
+
+    <!-- Writing a post -->
+    <main id="write" class="view" hidden>
+      <header class="write-bar">
+        <button type="button" class="link-button" id="back">← All posts</button>
+        <span class="save-state" id="save-state" aria-live="polite"></span>
+        <span class="publish-group">
+          <button type="button" class="primary" id="publish">Publish</button>
+          <span class="hint" id="publish-hint">Checks the post, then commits and pushes it to the live site.</span>
+        </span>
+      </header>
+
+      <div class="callout" id="callout" role="status" hidden></div>
+
+      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off">
+
+      <div class="details">
+        <label>Category <select id="category"></select></label>
+        <label>Research level <select id="level"></select></label>
+        <div class="tags-field">
+          <span class="tags-label" id="tags-label">Tags</span>
+          <ul class="tag-chips" id="tag-chips" aria-labelledby="tags-label"></ul>
+          <input id="tag-input" list="tag-options" placeholder="Add a tag" aria-label="Add a tag" autocomplete="off">
+          <datalist id="tag-options"></datalist>
+        </div>
+      </div>
+
+      <details class="more">
+        <summary>More details</summary>
+        <div class="more-grid">
+          <label class="wide">Description <input id="description" placeholder="One line for link previews and search results"></label>
+          <label>Address <span class="slug-field"><span class="muted">/blog/</span><input id="slug" autocomplete="off"><span class="muted">/</span></span></label>
+          <label>Project <select id="project"><option value="">None</option></select></label>
+          <label>Series <input id="series" list="series-options" autocomplete="off"><datalist id="series-options"></datalist></label>
+        </div>
+      </details>
+
+      <div class="toolbar" role="toolbar" aria-label="Formatting">
+        <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button type="button" data-cmd="h2" title="Heading">Heading</button>
+        <button type="button" data-cmd="h3" title="Subheading">Subheading</button>
+        <button type="button" data-cmd="quote" title="Quote">Quote</button>
+        <button type="button" data-cmd="bullets" title="Bulleted list">• List</button>
+        <button type="button" data-cmd="numbers" title="Numbered list">1. List</button>
+        <button type="button" data-cmd="link" title="Link (Ctrl+K)">Link</button>
+        <button type="button" data-cmd="annotate" class="annotate-button" title="Annotate a confession or Bible passage">Annotate</button>
+      </div>
+
+      <div id="content" class="post-body"></div>
+    </main>
+  </div>
+
+  <dialog id="picker" class="picker" aria-labelledby="picker-title">
+    <form method="dialog" class="picker-form" id="picker-form">
+      <header class="picker-head">
+        <h2 id="picker-title">Annotate a passage</h2>
+        <button type="button" class="link-button" id="picker-cancel">Cancel</button>
+      </header>
+
+      <div class="seg" role="group" aria-label="Text">
+        <button type="button" data-source="wcf" aria-pressed="true">Westminster</button>
+        <button type="button" data-source="scots" aria-pressed="false">Scots</button>
+        <button type="button" data-source="bible" aria-pressed="false">Bible</button>
+      </div>
+
+      <div class="locate">
+        <div class="locate-fields" id="locate-fields"></div>
+        <label class="search-field">Or search <input id="picker-search" type="search" placeholder="Words in the passage" autocomplete="off"></label>
+      </div>
+      <ul class="search-results" id="search-results" hidden></ul>
+
+      <p class="picker-step">Select the words you're annotating in the passage below.</p>
+      <blockquote class="passage picker-passage" id="picker-passage"></blockquote>
+      <p class="phrase-state" id="phrase-state" aria-live="polite"></p>
+
+      <fieldset class="stances">
+        <legend>Your stance</legend>
+        <div id="stance-options" class="stance-options"></div>
+      </fieldset>
+
+      <label class="note-field"><span>Your note <span class="muted">(optional)</span></span>
+        <textarea id="picker-note" rows="4"></textarea>
+      </label>
+
+      <footer class="picker-foot">
+        <button type="submit" class="primary" id="picker-save" disabled>Insert annotation</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

@@ -55,6 +55,9 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/css");
   eleventyConfig.addPassthroughCopy("src/js");
 
+  eleventyConfig.addWatchTarget("./lib/");
+  eleventyConfig.addWatchTarget("./texts/");
+
   // Posts marked `draft: true` appear under `npm start` but never in the published site.
   eleventyConfig.addPreprocessor("drafts", "*", (data) => {
     if (data.draft && !isDev) return false;

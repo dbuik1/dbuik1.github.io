@@ -19,9 +19,16 @@
     "@tiptap/markdown": "^3.31.4",
     "@tiptap/pm": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",
-    "gray-matter": "^4.0.3",
+    "chokidar": "file:tools/chokidar-globs",
+    "js-yaml": "^4.3.2",
     "markdown-it": "^14.3.2",
     "pagefind": "^1.5.2",
     "vite": "^8.3.3"
+  },
+  "overrides": {
+    "chokidar": "$chokidar",
+    "gray-matter": {
+      "js-yaml": "^4.1.0"
+    }
   }
 }

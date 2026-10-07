@@ -9,7 +9,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import matter from "gray-matter";
+import yaml from "js-yaml";
 import { createServer as createViteServer } from "vite";
 import * as annotations from "../lib/annotations.js";
 import site from "../src/_data/site.js";
@@ -33,6 +33,13 @@ const today = () => {
 };
 
 class UserError extends Error {}
+
+// Splits a Markdown file into its YAML front matter and body.
+function matter(source) {
+  const m = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!m) return { data: {}, content: source };
+  return { data: yaml.load(m[1]) ?? {}, content: m[2] };
+}
 
 // ---- Posts and drafts ----
 

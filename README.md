@@ -153,6 +153,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
 | `src/annotations/` | The annotated passages pages |
 | `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, the rest is the page |
+| `tools/chokidar-globs/` | A small stand-in for the file watcher behind `npm start`, so the project has no known security warnings. Leave it in place |
 | `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts and projects after each build |
 | `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |

@@ -1,0 +1,11 @@
+{
+  "name": "chokidar",
+  "version": "4.0.3-globs",
+  "private": true,
+  "description": "chokidar 4 with glob patterns, for Eleventy 3's file watcher.",
+  "main": "index.js",
+  "dependencies": {
+    "chokidar4": "npm:chokidar@^4.0.3",
+    "picomatch": "^4.0.2"
+  }
+}

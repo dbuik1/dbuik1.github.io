@@ -1,0 +1,1 @@
+This site is intended as a repository to keep track and list all of my projects and allows me to write my own blog posts as well, which I have wanted to do for a while. I use Generative AI a decent bit in my daily life and use it extensively to carry out my various projects. I have set this site up using AI, although any writing here is well and truly my own.

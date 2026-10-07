@@ -1,6 +1,5 @@
 import { feedPlugin } from "@11ty/eleventy-plugin-rss";
 import site from "./src/_data/site.js";
-import categories from "./src/_data/categories.js";
 import levels from "./src/_data/levels.js";
 import statuses from "./src/_data/statuses.js";
 import { eleventyImageTransformPlugin } from "@11ty/eleventy-img";
@@ -8,26 +7,28 @@ import * as annotations from "./lib/annotations.js";
 import * as references from "./lib/references.js";
 import * as texts from "./lib/texts.js";
 import * as xref from "./lib/xref.js";
+import * as tags from "./lib/tags.js";
+import * as graph from "./lib/graph.js";
+import * as fragments from "./lib/fragments.js";
 import { isPreview } from "./lib/preview.js";
 import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
 
-const categorySlugs = categories.map((c) => c.slug);
 const levelSlugs = levels.map((l) => l.slug);
 const statusSlugs = statuses.map((s) => s.slug);
 
 function checkPost(item) {
   const file = item.inputPath;
-  const { title, category, level, tags } = item.data;
+  const { title, level, history } = item.data;
   const problems = [];
   if (!title) problems.push("missing `title`");
-  if (!categorySlugs.includes(category)) {
-    problems.push(`\`category\` is "${category ?? ""}", expected one of: ${categorySlugs.join(", ")}`);
-  }
   if (!levelSlugs.includes(level)) {
     problems.push(`\`level\` is "${level ?? ""}", expected one of: ${levelSlugs.join(", ")}`);
   }
-  if (tags !== undefined && !Array.isArray(tags)) problems.push("`tags` must be a list, e.g. [faith, reading]");
+  problems.push(...tags.problems(item.data.tags));
+  if (history !== undefined && !(Array.isArray(history) && history.every((h) => levelSlugs.includes(h?.level) && !isNaN(new Date(h?.date))))) {
+    problems.push("`history` must be a list of { level, date } entries");
+  }
   if (problems.length) throw new Error(`Post ${file}: ${problems.join("; ")}`);
 }
 
@@ -47,6 +48,16 @@ const allProjects = (api) => {
   return projects.sort((a, b) => a.data.title.localeCompare(b.data.title));
 };
 
+const fragmentsGlob = "src/fragments/*.md";
+const allFragments = (api) => {
+  const items = api.getFilteredByGlob(fragmentsGlob);
+  for (const item of items) {
+    const problems = fragments.problems(item.data);
+    if (problems.length) throw new Error(`Fragment ${item.inputPath}: ${problems.join("; ")}`);
+  }
+  return items.reverse();
+};
+
 const postsGlob = "src/blog/*.md";
 const allPosts = (api) => {
   const posts = api.getFilteredByGlob(postsGlob);
@@ -60,6 +71,10 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/app-ads.txt");
   eleventyConfig.addPassthroughCopy("src/css");
   eleventyConfig.addPassthroughCopy("src/js");
+  // The force layout behind the graph page, from npm.
+  for (const name of ["d3-dispatch", "d3-quadtree", "d3-timer", "d3-force"]) {
+    eleventyConfig.addPassthroughCopy({ [`node_modules/${name}/dist/${name}.min.js`]: `js/vendor/${name}.min.js` });
+  }
 
   eleventyConfig.addWatchTarget("./lib/");
   eleventyConfig.addWatchTarget("./texts/");
@@ -111,26 +126,20 @@ export default function (eleventyConfig) {
     return posts;
   });
   eleventyConfig.addCollection("projects", allProjects);
-  // slug → posts that link to it with [[slug]], newest first.
+  eleventyConfig.addCollection("fragments", allFragments);
+  eleventyConfig.addCollection("fragmentKinds", (api) => fragments.kinds(allFragments(api)));
+  // slug → posts, projects and fragments that link to it with [[slug]], newest first.
   eleventyConfig.addCollection("backlinks", (api) => {
     const map = {};
-    for (const post of allPosts(api)) {
+    for (const post of [...allPosts(api), ...allProjects(api), ...allFragments(api)]) {
       for (const slug of new Set(xref.linksIn(readFileSync(post.inputPath, "utf8")))) (map[slug] ??= []).push(post);
     }
     return map;
   });
-  for (const slug of categorySlugs) {
-    eleventyConfig.addCollection(`category-${slug}`, (api) =>
-      allPosts(api).filter((p) => p.data.category === slug)
-    );
+  for (const slug of levelSlugs) {
+    eleventyConfig.addCollection(`level-${slug}`, (api) => allPosts(api).filter((p) => p.data.level === slug));
   }
-  eleventyConfig.addCollection("tagList", (api) => {
-    const counts = new Map();
-    for (const post of allPosts(api)) {
-      for (const tag of post.data.tags ?? []) counts.set(tag, (counts.get(tag) ?? 0) + 1);
-    }
-    return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name));
-  });
+  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allFragments(api)]));
 
   // {% annotate "wcf 1.4", "exact phrase", "qualified" %}Your note{% endannotate %}
   eleventyConfig.addPairedShortcode("annotate", function (note, ref, phrase, stance) {
@@ -144,6 +153,15 @@ export default function (eleventyConfig) {
     return (this.page.outputPath || "").endsWith(".html") ? annotations.linkInlinePhrases(content) : content;
   });
   eleventyConfig.addCollection("annotations", (api) => annotations.collect(allPosts(api)));
+  eleventyConfig.addCollection("graph", (api) =>
+    graph.build({
+      posts: allPosts(api),
+      projects: allProjects(api),
+      fragments: allFragments(api),
+      passages: annotations.collect(allPosts(api)),
+      levels,
+    })
+  );
   eleventyConfig.addGlobalData("stances", annotations.stances);
   eleventyConfig.addFilter("stanceName", annotations.stanceName);
 
@@ -155,7 +173,22 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("isoDate", (date) => new Date(date).toISOString().slice(0, 10));
   eleventyConfig.addFilter("head", (array, n) => array.slice(0, n));
   eleventyConfig.addFilter("byField", (array, field, value) => array.filter((item) => item[field] === value));
-  eleventyConfig.addFilter("withTag", (posts, tag) => posts.filter((p) => (p.data.tags ?? []).includes(tag)));
+  eleventyConfig.addFilter("withTag", tags.withTag);
+  eleventyConfig.addFilter("tagUrl", tags.url);
+  eleventyConfig.addFilter("byKind", (items, kind) => items.filter((f) => f.data.kind === kind));
+  eleventyConfig.addFilter("fragmentSource", function (text) {
+    try {
+      return fragments.source(text);
+    } catch (e) {
+      throw new Error(`Fragment ${this.page?.inputPath ?? ""}: ${e.message}`);
+    }
+  });
+  eleventyConfig.addFilter("linkedTo", (links, id) =>
+    links.filter((l) => l.source === id || l.target === id).map((l) => (l.source === id ? l.target : l.source))
+  );
+  eleventyConfig.addFilter("ancestry", tags.ancestry);
+  eleventyConfig.addFilter("tagLeaf", tags.leaf);
+  eleventyConfig.addFilter("latest", (history) => (Array.isArray(history) && history.length ? history.at(-1) : null));
   eleventyConfig.addFilter("byFileSlug", (items, slug) => items.filter((i) => i.fileSlug === slug));
   eleventyConfig.addFilter("byStatus", (projects, status) => projects.filter((p) => p.data.status === status));
   eleventyConfig.addFilter("byProject", (posts, slug) => posts.filter((p) => p.data.project === slug));
@@ -172,14 +205,20 @@ export default function (eleventyConfig) {
     type: "atom",
     outputPath: "/feed.xml",
     collection: { name: "posts", limit: 20 },
-    metadata: feedMeta("Everything"),
+    metadata: feedMeta("All writing"),
   });
-  for (const c of categories) {
+  eleventyConfig.addPlugin(feedPlugin, {
+    type: "atom",
+    outputPath: "/fragments/feed.xml",
+    collection: { name: "fragments", limit: 50 },
+    metadata: { ...feedMeta("Fragments"), title: `${site.title}: Fragments` },
+  });
+  for (const l of levels) {
     eleventyConfig.addPlugin(feedPlugin, {
       type: "atom",
-      outputPath: `/blog/${c.slug}/feed.xml`,
-      collection: { name: `category-${c.slug}`, limit: 20 },
-      metadata: { ...feedMeta(c.name), title: `${site.title}: ${c.name}` },
+      outputPath: `/blog/${l.slug}/feed.xml`,
+      collection: { name: `level-${l.slug}`, limit: 20 },
+      metadata: { ...feedMeta(l.name), title: `${site.title}: ${l.name}` },
     });
   }
 

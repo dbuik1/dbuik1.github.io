@@ -4,10 +4,26 @@ pagination:
   data: collections.tagList
   size: 1
   alias: tag
-permalink: "/tags/{{ tag.name | slugify }}/"
+permalink: "{{ tag.url }}"
 eleventyComputed:
-  title: "Tagged “{{ tag.name }}”"
+  title: "Tagged “{{ tag.name | replace('/', ' / ') }}”"
 ---
+{%- if tag.parent or tag.children | length %}
+<nav class="filters tag-family" aria-label="Related tags">
+  {%- if tag.parent %}<a href="{{ tag.parent | tagUrl }}">↑ {{ tag.parent | replace("/", " / ") }}</a>{% endif %}
+  {%- for c in tag.children %}
+  {%- set child = collections.tagList | byField("name", c) | first %}
+  <a href="{{ child.url }}">{{ child.leaf }} <span class="count">{{ child.count }}</span></a>
+  {%- endfor %}
+</nav>
+{%- endif %}
 {%- set postList = collections.posts | withTag(tag.name) %}
+{%- set fragmentList = collections.fragments | withTag(tag.name) %}
+{%- if postList | length or not fragmentList | length %}
 {% include "partials/post-list.njk" %}
+{%- endif %}
+{%- if fragmentList | length %}
+<h2>Fragments</h2>
+{% include "partials/fragment-list.njk" %}
+{%- endif %}
 <p><a href="/tags/">All tags</a></p>

@@ -1,0 +1,8 @@
+{#- Expects `f` (a fragment) in scope: who said it and where. -#}
+{%- if f.data.by or f.data.source %}
+<p class="fragment-credit">
+  {%- if f.data.by %}<span class="fragment-by">{{ f.data.by }}</span>{% endif %}
+  {%- if f.data.by and f.data.source %}, {% endif %}
+  {%- if f.data.source %}<cite>{{ f.data.source | fragmentSource | safe }}</cite>{% endif %}
+</p>
+{%- endif %}

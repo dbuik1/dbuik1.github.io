@@ -1,8 +1,7 @@
 ---
 title: Example post
 description: One line for link previews and search results.
-category: thinking
-level: passing
+level: unexplored
 tags: [example]
 draft: true
 ---

@@ -1,7 +1,7 @@
 ---
 layout: layouts/base.njk
 ---
-{%- set p = { date: page.date, data: { category: category, level: level, draft: draft, project: project } } %}
+{%- set p = { date: page.date, data: { level: level, history: history, draft: draft, project: project } } %}
 <article class="post" data-pagefind-body>
   <header class="post-header">
     <h1>{{ title }}</h1>
@@ -46,7 +46,7 @@ layout: layouts/base.njk
 
   {%- if tags and tags | length %}
   <p class="post-tags">Tags:
-    {%- for tag in tags %} <a href="/tags/{{ tag | slugify }}/">{{ tag }}</a>{% if not loop.last %},{% endif %}{% endfor %}
+    {%- for tag in tags %} <a href="{{ tag | tagUrl }}">{{ tag | replace("/", " / ") }}</a>{% if not loop.last %},{% endif %}{% endfor %}
   </p>
   {%- endif %}
 </article>

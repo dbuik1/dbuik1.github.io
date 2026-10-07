@@ -4,7 +4,7 @@
 // from other origins, because anything that can reach it can commit to the site.
 import { createServer as createHttpServer } from "node:http";
 import { readFile, writeFile, readdir, mkdir, unlink } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -16,8 +16,8 @@ import * as annotations from "../lib/annotations.js";
 import * as references from "../lib/references.js";
 import * as texts from "../lib/texts.js";
 import * as xref from "../lib/xref.js";
+import * as tagTools from "../lib/tags.js";
 import site from "../src/_data/site.js";
-import categories from "../src/_data/categories.js";
 import levels from "../src/_data/levels.js";
 import statuses from "../src/_data/statuses.js";
 
@@ -25,6 +25,7 @@ const run = promisify(execFile);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BLOG = path.join(ROOT, "src/blog");
 const PROJECTS = path.join(ROOT, "src/projects");
+const FRAGMENTS = path.join(ROOT, "src/fragments");
 const DRAFTS = path.join(ROOT, "drafts");
 const IMAGES = path.join(ROOT, "src/images");
 const PORT = Number(process.env.PORT) || 8081;
@@ -55,7 +56,7 @@ async function listPosts() {
   return Promise.all(
     files.map(async (file) => {
       const { data } = matter(await readFile(path.join(BLOG, file), "utf8"));
-      return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], draft: !!data.draft };
+      return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], level: data.level, draft: !!data.draft };
     })
   );
 }
@@ -100,6 +101,42 @@ async function openPost(file) {
   const { meta, body } = await readPost(file);
   return { id, kind: "post", file, meta, body, updated: null };
 }
+
+// The level a published post has on the site, so the editor can say when publishing will move it.
+function withLiveLevel(doc) {
+  if ((doc.kind ?? "post") !== "post" || !doc.file || !existsSync(postPath(doc.file))) return doc;
+  return { ...doc, liveLevel: matter(readFileSync(postPath(doc.file), "utf8")).data.level ?? null };
+}
+
+// ---- Fragments ----
+
+const fragmentPath = (file) => {
+  if (!POST_FILE.test(file ?? "")) throw new UserError("That fragment file name isn't valid.");
+  return path.join(FRAGMENTS, file);
+};
+
+async function listFragments() {
+  if (!existsSync(FRAGMENTS)) return [];
+  const files = (await readdir(FRAGMENTS)).filter((f) => POST_FILE.test(f)).sort().reverse();
+  return Promise.all(
+    files.map(async (file) => {
+      const { data } = matter(await readFile(path.join(FRAGMENTS, file), "utf8"));
+      return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], kind: data.kind ?? "", draft: !!data.draft };
+    })
+  );
+}
+
+async function openFragment(file) {
+  const id = `fragment-${slugify(file.replace(/\.md$/, ""))}`;
+  const p = draftPath(id);
+  if (existsSync(p)) return JSON.parse(await readFile(p, "utf8"));
+  const { data, content } = matter(await readFile(fragmentPath(file), "utf8"));
+  const [, date, slug] = file.match(POST_FILE);
+  return { id, kind: "fragment", file, meta: { ...data, date, slug }, body: content.replace(/^\n+/, ""), updated: null };
+}
+
+// A fragment's address comes from its first few words, so long lines still get short addresses.
+const fragmentSlug = (text) => slugify(String(text).split(/\s+/).slice(0, 8).join(" ")).slice(0, 60).replace(/-$/, "");
 
 // ---- Projects ----
 
@@ -148,7 +185,7 @@ async function saveDraft({ id, kind, file, meta, body }) {
 
 // ---- Front matter ----
 
-const FIELD_ORDER = ["title", "description", "category", "level", "tags", "project", "series", "status", "summary", "links"];
+const FIELD_ORDER = ["title", "kind", "by", "source", "description", "level", "history", "tags", "project", "series", "status", "summary", "links"];
 const yamlString = (s) => (/^[A-Za-z0-9][\w .,'’()?!-]*$/.test(s) && !/: /.test(s) ? s : JSON.stringify(s));
 
 function frontMatter(meta) {
@@ -183,8 +220,8 @@ function checkProject(meta) {
 function checkMeta(meta) {
   const problems = [];
   if (!meta.title?.trim()) problems.push("Add a title.");
-  if (!categories.some((c) => c.slug === meta.category)) problems.push("Choose a category.");
   if (!levels.some((l) => l.slug === meta.level)) problems.push("Choose a research level.");
+  problems.push(...tagTools.problems(meta.tags).map((p) => `Tags: ${p}.`));
   if (!slugify(meta.slug || meta.title || "")) problems.push("The address can't be empty.");
   if (problems.length) throw new UserError(problems.join(" "));
 }
@@ -217,6 +254,28 @@ function plan({ kind = "post", file, meta, body }) {
       isNew: false,
     };
   }
+  if (kind === "fragment") {
+    const problems = [];
+    if (!meta.title?.trim()) problems.push("Write the line itself in the title.");
+    problems.push(...tagTools.problems(meta.tags).map((p) => `Tags: ${p}.`));
+    const slug = fragmentSlug(meta.slug || meta.title || "");
+    if (!slug) problems.push("The line needs at least one letter or number.");
+    if (problems.length) throw new UserError(problems.join(" "));
+    const target = file ?? `${today()}-${slug}.md`;
+    const full = fragmentPath(target);
+    if (!file && existsSync(full)) throw new UserError(`A fragment called ${target} already exists. Change a word or two.`);
+    const { date, slug: _slug, draft, ...fields } = meta;
+    for (const k of ["kind", "by", "source"]) fields[k] = String(fields[k] ?? "").trim();
+    if (draft) fields.draft = true;
+    return {
+      full,
+      content: frontMatter(fields) + body.trim() + "\n",
+      message: `${file ? "Update" : "Add"} fragment “${meta.title.trim()}”`,
+      url: `${site.url}/fragments/${target.match(POST_FILE)[2]}/`,
+      file: target,
+      isNew: !file,
+    };
+  }
   if (kind === "project") {
     checkProject(meta);
     const slug = file ?? slugify(meta.slug || meta.title);
@@ -238,7 +297,8 @@ function plan({ kind = "post", file, meta, body }) {
   const target = file ?? `${meta.date && /^\d{4}-\d{2}-\d{2}$/.test(meta.date) ? meta.date : today()}-${slug}.md`;
   const full = postPath(target);
   if (!file && existsSync(full)) throw new UserError(`A post called ${target} already exists. Change the address under More details.`);
-  const { date, slug: _slug, draft, ...fields } = meta;
+  const { date, slug: _slug, draft, category: _category, ...fields } = meta;
+  fields.history = growth(file, meta.level, fields.history);
   return {
     full,
     content: frontMatter(fields) + body.trim() + "\n",
@@ -247,6 +307,15 @@ function plan({ kind = "post", file, meta, body }) {
     file: target,
     isNew: !file,
   };
+}
+
+// When a published post moves to another research level, the date it got there
+// is kept in `history`, so the post can say how long it has been at that level.
+function growth(file, level, history = []) {
+  const kept = (Array.isArray(history) ? history : []).map((h) => ({ level: h.level, date: String(h.date instanceof Date ? h.date.toISOString() : h.date).slice(0, 10) }));
+  if (!file || !existsSync(postPath(file))) return kept;
+  const was = matter(readFileSync(postPath(file), "utf8")).data.level;
+  return was && was !== level ? [...kept, { level, date: today() }] : kept;
 }
 
 // Images the document uses that aren't committed yet go with it.
@@ -340,7 +409,7 @@ async function saveImage({ name, type, data }) {
 async function usesOf(key) {
   const pattern = new RegExp(`@${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w:.-])`);
   const found = [];
-  for (const dir of [BLOG, PROJECTS]) {
+  for (const dir of [BLOG, PROJECTS, FRAGMENTS].filter((d) => existsSync(d))) {
     for (const f of (await readdir(dir)).filter((x) => x.endsWith(".md"))) {
       if (pattern.test(await readFile(path.join(dir, f), "utf8"))) found.push(path.relative(ROOT, path.join(dir, f)));
     }
@@ -440,16 +509,21 @@ async function meta() {
       title: matter(await readFile(path.join(PROJECTS, f), "utf8")).data.title,
     }))
   );
+  const fragments = existsSync(FRAGMENTS)
+    ? await Promise.all(
+        (await readdir(FRAGMENTS)).filter((f) => f.endsWith(".md")).map(async (f) => matter(await readFile(path.join(FRAGMENTS, f), "utf8")).data)
+      )
+    : [];
   const uniq = (xs) => [...new Set(xs.filter(Boolean))].sort((a, b) => a.localeCompare(b));
   return {
     siteUrl: site.url,
-    categories,
     levels,
     statuses,
     texts: texts.texts,
     stances: annotations.stances,
     projects,
-    tags: uniq(posts.flatMap((p) => p.tags ?? [])),
+    tags: uniq([...posts, ...fragments].flatMap((p) => tagTools.expand(p.tags ?? []))),
+    fragmentKinds: uniq(fragments.map((f) => f.kind)),
     series: uniq(posts.map((p) => p.series)),
     outline: annotations.outline(),
   };
@@ -465,11 +539,17 @@ async function readJson(req) {
 
 const routes = {
   "GET /api/meta": () => meta(),
-  "GET /api/list": async () => ({ drafts: await listDrafts(), posts: await listPosts(), projects: await listProjects() }),
+  "GET /api/list": async () => ({
+    drafts: await listDrafts(),
+    posts: await listPosts(),
+    fragments: await listFragments(),
+    projects: await listProjects(),
+  }),
+  "GET /api/fragment": async (_b, q) => openFragment(q.get("file")),
   "GET /api/project": async (_b, q) => openProject(q.get("slug")),
   "GET /api/text": async (_b, q) => openText(q.get("name")),
-  "GET /api/draft": async (_b, q) => JSON.parse(await readFile(draftPath(q.get("id")), "utf8")),
-  "GET /api/post": async (_b, q) => openPost(q.get("file")),
+  "GET /api/draft": async (_b, q) => withLiveLevel(JSON.parse(await readFile(draftPath(q.get("id")), "utf8"))),
+  "GET /api/post": async (_b, q) => withLiveLevel(await openPost(q.get("file"))),
   "POST /api/draft": (b) => saveDraft(b),
   "POST /api/draft/delete": async (b) => (await unlink(draftPath(b.id)).catch(() => {}), { ok: true }),
   "POST /api/passage": async (b) => {

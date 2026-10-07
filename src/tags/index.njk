@@ -3,12 +3,21 @@ layout: layouts/page.njk
 title: Tags
 permalink: /tags/
 ---
-{%- if collections.tagList | length %}
-<ul class="tag-index">
-  {%- for t in collections.tagList %}
-  <li><a href="/tags/{{ t.name | slugify }}/">{{ t.name }}</a> <span class="count">{{ t.count }}</span></li>
+{#- Top-level tags with their sub-tags nested under them. Counts include everything below a tag. -#}
+{%- macro branch(names) %}
+<ul class="tag-tree">
+  {%- for name in names %}
+  {%- set t = collections.tagList | byField("name", name) | first %}
+  <li><a href="{{ t.url }}">{{ t.leaf }}</a> <span class="count">{{ t.count }}</span>
+    {%- if t.children | length %}{{ branch(t.children) }}{% endif %}
+  </li>
   {%- endfor %}
 </ul>
+{%- endmacro %}
+{%- set roots = [] %}
+{%- for t in collections.tagList %}{% if t.depth == 0 %}{% set roots = (roots.push(t.name), roots) %}{% endif %}{% endfor %}
+{%- if roots | length %}
+{{ branch(roots) }}
 {%- else %}
 <p class="empty">No tags yet. Tags appear here once a post uses them.</p>
 {%- endif %}

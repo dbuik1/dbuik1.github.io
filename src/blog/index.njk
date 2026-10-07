@@ -3,12 +3,23 @@ layout: layouts/page.njk
 title: Writing
 permalink: /blog/
 ---
-<nav class="filters" aria-label="Categories">
-  <a href="/blog/" aria-current="page">All</a>
-  {%- for c in categories %}
-  <a href="/blog/{{ c.slug }}/">{{ c.name }}</a>
+{#- Grouped by how far each topic has been explored, most researched first. -#}
+<nav class="filters" aria-label="Writing">
+  {%- for l in levels | reverse %}
+  <a href="/blog/{{ l.slug }}/">{{ l.name }}</a>
   {%- endfor %}
   <a href="/tags/">Tags</a>
+  <a href="/levels/">What the levels mean</a>
 </nav>
-{%- set postList = collections.posts %}
-{% include "partials/post-list.njk" %}
+{%- for l in levels | reverse %}
+{%- set postList = collections["level-" + l.slug] %}
+{%- if postList | length %}
+<section class="level-group" aria-labelledby="group-{{ l.slug }}">
+  <h2 id="group-{{ l.slug }}"><a href="/blog/{{ l.slug }}/">{{ l.name }}</a> <span class="count">{{ postList | length }}</span></h2>
+  {% include "partials/post-list.njk" %}
+</section>
+{%- endif %}
+{%- endfor %}
+{%- if not collections.posts | length %}
+<p class="empty">No posts yet.</p>
+{%- endif %}

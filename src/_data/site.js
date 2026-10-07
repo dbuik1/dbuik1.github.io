@@ -9,12 +9,15 @@ export default {
   nav: [
     { label: "Home", url: "/" },
     { label: "Writing", url: "/blog/" },
+    { label: "Fragments", url: "/fragments/" },
     { label: "Projects", url: "/projects/" },
+    { label: "Graph", url: "/graph/" },
     { label: "Search", url: "/search/" },
   ],
   footer: [
     { label: "Feeds", url: "/feeds/" },
     { label: "Colophon", url: "/colophon/" },
+    { label: "AI and this site", url: "/ai/" },
     { label: "Changelog", url: "/changelog/" },
   ],
 };

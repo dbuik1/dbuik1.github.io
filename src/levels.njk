@@ -3,6 +3,7 @@ layout: layouts/page.njk
 title: Research levels
 permalink: /levels/
 ---
+{{ "levels-intro" | siteText | safe }}
 <dl class="levels">
   {%- for l in levels %}
   <div id="{{ l.slug }}">

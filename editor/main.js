@@ -8,6 +8,9 @@ import { Footnote, Citation } from "./notes.js";
 import { initDialogs, loadLibrary, citationLabel, openImage, openFootnote, openCite } from "./dialogs.js";
 import { initLibrary, showLibrary } from "./library.js";
 import { Xref, initXref, loadTargets, openXref } from "./xref.js";
+import { TableKit } from "@tiptap/extension-table";
+import MarkdownIt from "markdown-it";
+import { HtmlBlock, HtmlInline, Sup, Sub, initHtml, newHtmlBlock } from "./html.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,6 +30,7 @@ initPicker(meta, api);
 initDialogs(api);
 initLibrary(api);
 initXref(api);
+initHtml();
 await Promise.all([loadLibrary().catch(() => {}), loadTargets().catch(() => {})]);
 
 // ---- Passage lookups, cached for the annotation cards ----
@@ -57,6 +61,11 @@ const editor = new Editor({
     Footnote.configure({ onEdit: (attrs, update) => openFootnote(attrs, update) }),
     Citation.configure({ onEdit: (attrs, update) => openCite(attrs, update), label: citationLabel }),
     Xref.configure({ onEdit: (attrs, update) => openXref(attrs, update, true), onTrigger: () => crossLink() }),
+    HtmlBlock,
+    HtmlInline,
+    Sup,
+    Sub,
+    TableKit.configure({ table: { resizable: false } }),
   ],
   editorProps: {
     attributes: { class: "prose", "aria-label": "Text", spellcheck: "true" },
@@ -190,7 +199,7 @@ function collect() {
   const base = { id: doc?.id, kind, file: doc?.file ?? null };
   if (kind === "text") {
     const inline = textInfo(doc.file)?.inline;
-    return { ...base, meta: {}, body: inline ? fields.inline.value.trim() : editor.getMarkdown() };
+    return { ...base, meta: {}, body: inline ? fields.inline.value.trim() : body() };
   }
   const slug = fields.slug.value.trim() || slugify(fields.title.value);
   if (kind === "project") {
@@ -204,7 +213,7 @@ function collect() {
         links: links.filter((l) => l.label?.trim() || l.url?.trim()),
         slug,
       },
-      body: editor.getMarkdown(),
+      body: body(),
     };
   }
   const m = {
@@ -218,7 +227,7 @@ function collect() {
     series: fields.series.value.trim(),
     slug,
   };
-  return { ...base, meta: m, body: editor.getMarkdown() };
+  return { ...base, meta: m, body: body() };
 }
 
 // Shows only the parts of the writing screen that apply to this kind of document.
@@ -269,16 +278,16 @@ function fill(d) {
   slugTouched = !!m.slug;
   tags = Array.isArray(m.tags) ? [...m.tags] : [];
   renderTags();
-  editor.commands.setContent(info?.inline ? "" : d.body ?? "", { contentType: "markdown", emitUpdate: false });
+  const source = info?.inline ? "" : d.body ?? "";
+  editor.commands.setContent(source, { contentType: "markdown", emitUpdate: false });
   const [label, hint] = PUBLISH[kind][d.file ? "live" : "new"];
   $("publish").textContent = label;
   $("publish-hint").textContent = hint;
   hideCallout();
-  if (/<\/?[a-z][^>]*>/i.test(d.body ?? "")) {
-    showCallout(
-      "warn",
-      "This contains HTML, which the editor can't keep. Publishing from here would drop it, so edit the file in a text editor instead."
-    );
+  setSourceMode(false);
+  if (!info?.inline && !keepsFormatting(source, editor.getMarkdown())) {
+    setSourceMode(true, source);
+    showCallout("warn", "This is open as source because the rich-text view would change some of its formatting. Edit it here as Markdown and HTML.");
   }
   dirty = false;
   setSaveState(d.updated ? `Draft saved ${time(d.updated)}` : d.file ? "Editing the live version. Changes stay private until you update it." : "");
@@ -373,6 +382,7 @@ $("publish").addEventListener("click", async () => {
     $("write").classList.add("done");
     fields.title.readOnly = true;
     fields.inline.readOnly = true;
+    sourceBox.readOnly = true;
     editor.setEditable(false);
     button.hidden = true;
     $("publish-hint").hidden = true;
@@ -384,6 +394,61 @@ $("publish").addEventListener("click", async () => {
   }
 });
 
+// ---- Source view ----
+// The source is the text exactly as saved, so anything the rich-text view can't
+// represent can still be edited. Switching back re-reads it as rich text.
+let sourceMode = false;
+const sourceBox = $("source");
+const body = () => (sourceMode ? sourceBox.value : editor.getMarkdown());
+
+// Plain rendering, used only to tell whether two Markdown texts produce the same page.
+const plain = new MarkdownIt({ html: true });
+const squash = (html) => html.replace(/>\s+</g, "><").replace(/\s+/g, " ").trim();
+const keepsFormatting = (before, after) => squash(plain.render(before)) === squash(plain.render(after));
+
+function fitSource() {
+  sourceBox.style.height = "auto";
+  sourceBox.style.height = `${sourceBox.scrollHeight + 2}px`;
+}
+sourceBox.addEventListener("input", () => {
+  fitSource();
+  changed();
+});
+
+function setSourceMode(on, text) {
+  const rich = !(kindOf(doc) === "text" && textInfo(doc?.file)?.inline);
+  sourceMode = on;
+  $("write").classList.toggle("source-mode", on);
+  $("content").hidden = on || !rich;
+  sourceBox.hidden = !on || !rich;
+  const toggle = document.querySelector('.toolbar [data-cmd="source"]');
+  toggle.setAttribute("aria-pressed", String(on));
+  toggle.textContent = on ? "Rich text" : "Source";
+  toggle.title = on ? "Go back to the formatted view" : "Edit as plain Markdown and HTML";
+  if (on) {
+    sourceBox.value = text ?? editor.getMarkdown();
+    fitSource();
+  }
+  updateToolbar();
+}
+
+function toggleSource() {
+  if (!sourceMode) {
+    setSourceMode(true);
+    sourceBox.focus();
+    return;
+  }
+  const text = sourceBox.value;
+  editor.commands.setContent(text, { contentType: "markdown", emitUpdate: false });
+  if (!keepsFormatting(text, editor.getMarkdown())) {
+    if (!confirm("The rich-text view would change some of this formatting. Switch anyway? Choose Cancel to keep editing the source.")) return;
+    changed();
+  }
+  hideCallout();
+  setSourceMode(false);
+  editor.commands.focus();
+}
+
 // ---- Toolbar ----
 const commands = {
   bold: (c) => c.toggleBold(),
@@ -393,6 +458,14 @@ const commands = {
   quote: (c) => c.toggleBlockquote(),
   bullets: (c) => c.toggleBulletList(),
   numbers: (c) => c.toggleOrderedList(),
+  sup: (c) => c.toggleSuperscript(),
+  sub: (c) => c.toggleSubscript(),
+  table: (c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true }),
+  rowAfter: (c) => c.addRowAfter(),
+  colAfter: (c) => c.addColumnAfter(),
+  rowDelete: (c) => c.deleteRow(),
+  colDelete: (c) => c.deleteColumn(),
+  tableDelete: (c) => c.deleteTable(),
 };
 function setLink() {
   const previous = editor.getAttributes("link").href ?? "";
@@ -428,6 +501,10 @@ function crossLink() {
   const text = editor.state.doc.textBetween(from, to, " ");
   openXref({ text }, (attrs) => attrs && editor.chain().focus().insertContentAt({ from, to }, { type: "xref", attrs }).run());
 }
+function htmlBlock() {
+  const at = afterBlock();
+  newHtmlBlock((attrs) => editor.chain().focus().insertContentAt(at, { type: "htmlBlock", attrs }).run());
+}
 function annotate() {
   openPicker(null, (attrs) => {
     // Annotations sit after the paragraph they belong to.
@@ -439,6 +516,9 @@ function annotate() {
 document.querySelector(".toolbar").addEventListener("click", (e) => {
   const cmd = e.target.closest("button")?.dataset.cmd;
   if (!cmd) return;
+  e.target.closest("details")?.removeAttribute("open");
+  if (cmd === "source") return toggleSource();
+  if (cmd === "html") return htmlBlock();
   if (cmd === "link") return setLink();
   if (cmd === "annotate") return annotate();
   if (cmd === "image") return insertImage();
@@ -459,13 +539,16 @@ function updateToolbar() {
     bullets: editor.isActive("bulletList"),
     numbers: editor.isActive("orderedList"),
     link: editor.isActive("link"),
+    sup: editor.isActive("superscript"),
+    sub: editor.isActive("subscript"),
   };
+  $("table-tools").hidden = sourceMode || !editor.isActive("table");
   for (const b of document.querySelectorAll(".toolbar button[data-cmd]")) {
     if (b.dataset.cmd in active) b.setAttribute("aria-pressed", String(active[b.dataset.cmd]));
   }
 }
 document.addEventListener("keydown", (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === "k" && !$("write").hidden) {
+  if ((e.ctrlKey || e.metaKey) && e.key === "k" && !$("write").hidden && !sourceMode) {
     e.preventDefault();
     setLink();
   }
@@ -568,6 +651,7 @@ function showWrite(d) {
   $("write").classList.remove("done");
   fields.title.readOnly = false;
   fields.inline.readOnly = false;
+  sourceBox.readOnly = false;
   editor.setEditable(true);
   $("publish").hidden = false;
   $("publish-hint").hidden = false;
@@ -577,6 +661,7 @@ function showWrite(d) {
     if (textInfo(d.file)?.inline) fields.inline.focus();
     else editor.commands.focus("end");
   } else if (!d.meta?.title) fields.title.focus();
+  else if (sourceMode) sourceBox.focus();
   else editor.commands.focus("end");
 }
 

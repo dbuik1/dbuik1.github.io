@@ -139,14 +139,33 @@
         <button type="button" data-cmd="numbers" title="Numbered list">1. List</button>
         <button type="button" data-cmd="link" title="Link (Ctrl+K)">Link</button>
         <button type="button" data-cmd="xref" title="Link to another post or project (or type [[)">Cross-link</button>
+        <details class="toolbar-more">
+          <summary>More</summary>
+          <div class="toolbar-menu" role="group" aria-label="More formatting">
+            <button type="button" data-cmd="sup" title="Superscript">x² Superscript</button>
+            <button type="button" data-cmd="sub" title="Subscript">x₂ Subscript</button>
+            <button type="button" data-cmd="table" title="Insert a table">Table</button>
+            <button type="button" data-cmd="html" title="Insert a block of HTML">HTML block</button>
+          </div>
+        </details>
         <span class="toolbar-gap"></span>
         <button type="button" data-cmd="image" class="insert-button" title="Insert an image">Image</button>
         <button type="button" data-cmd="footnote" class="insert-button" title="Add a footnote at the cursor" data-kinds="post project">Footnote</button>
         <button type="button" data-cmd="cite" class="insert-button" title="Cite a source from your library" data-kinds="post project">Cite</button>
         <button type="button" data-cmd="annotate" class="insert-button" title="Annotate a confession or Bible passage" data-kinds="post">Annotate</button>
+        <button type="button" data-cmd="source" class="source-toggle" aria-pressed="false" title="Edit the post as plain Markdown and HTML">Source</button>
+        <div class="table-tools" id="table-tools" role="group" aria-label="Table" hidden>
+          <span class="muted">Table:</span>
+          <button type="button" data-cmd="rowAfter">Add row</button>
+          <button type="button" data-cmd="colAfter">Add column</button>
+          <button type="button" data-cmd="rowDelete">Delete row</button>
+          <button type="button" data-cmd="colDelete">Delete column</button>
+          <button type="button" data-cmd="tableDelete">Delete table</button>
+        </div>
       </div>
 
       <div id="content" class="post-body" data-kinds="post project text"></div>
+      <textarea id="source" class="source-text" aria-label="Source: Markdown and HTML" spellcheck="true" hidden></textarea>
     </main>
   </div>
 
@@ -283,6 +302,23 @@
       <footer class="picker-foot">
         <button type="button" class="link-button" id="xref-remove" hidden>Remove link</button>
         <button type="submit" class="primary" id="xref-save" disabled>Insert link</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="html-dialog" class="picker" aria-labelledby="html-title">
+    <form method="dialog" class="picker-form" id="html-form">
+      <header class="picker-head">
+        <h2 id="html-title">HTML</h2>
+        <button type="button" class="link-button" data-close>Cancel</button>
+      </header>
+      <label class="note-field"><span>Code <span class="muted">(kept exactly as written)</span></span>
+        <textarea id="html-code" class="code" rows="8" spellcheck="false"></textarea>
+      </label>
+      <div class="note-field"><span>Preview</span><div class="html-preview post-body" id="html-preview"></div></div>
+      <footer class="picker-foot">
+        <button type="button" class="link-button" id="html-remove">Remove</button>
+        <button type="submit" class="primary">Save</button>
       </footer>
     </form>
   </dialog>

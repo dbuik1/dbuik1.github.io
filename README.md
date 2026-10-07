@@ -29,7 +29,9 @@ npm run write    # then open http://127.0.0.1:8081/
 - Drafts save automatically into `drafts/` on your computer. That folder is never committed, so drafts stay private until you publish.
 - **Publish** checks that the site still builds with the post, then commits it to `main` and pushes it, using your own git login. The site updates about a minute later. The repository must be on `main`.
 - Opening a published post edits a private copy; **Update live post** publishes the changes.
-- Posts containing raw HTML can't be edited here, because the editor would drop the HTML. The editor says so when you open one.
+- **More** has superscript, subscript, tables and HTML blocks. Inside a table, a row of table buttons appears (add or delete rows and columns, delete the table).
+- HTML is kept exactly as written. A block of HTML shows as a card with a live preview, and HTML inside a sentence (an `<abbr>`, a `<span>`) as a chip; click either, or press Enter on it, to edit the code.
+- **Source** switches to the post as plain Markdown and HTML, and **Rich text** switches back. If the formatted view can't hold something in a post (a code block, for example), the post opens in Source with a note saying so, and switching back asks first.
 - **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, the colophon, the research level descriptions, and projects. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
 - **Reference library** lists your sources. Add one by pasting a DOI, an ISBN or a BibTeX entry. To bring in sources from Zotero, export them as BibTeX (the Better BibTeX add-on gives stable keys) and import the file; entries with the same key are replaced. Library changes are published with your next post, or straight away with **Publish library**.
 

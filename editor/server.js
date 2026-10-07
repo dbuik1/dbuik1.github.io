@@ -28,6 +28,7 @@ const PROJECTS = path.join(ROOT, "src/projects");
 const DRAFTS = path.join(ROOT, "drafts");
 const IMAGES = path.join(ROOT, "src/images");
 const PORT = Number(process.env.PORT) || 8081;
+const ELEVENTY = path.join(ROOT, "node_modules/@11ty/eleventy/cmd.cjs");
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
 const POST_FILE = /^(\d{4}-\d{2}-\d{2})-(.+)\.md$/;
@@ -287,7 +288,8 @@ async function readyToPublish() {
 
 async function checkBuild(restore) {
   try {
-    await run("npx", ["eleventy", "--dryrun", "--quiet"], { cwd: ROOT, maxBuffer: 10 * 1024 * 1024 });
+    // Node runs Eleventy's own script directly, which works on Windows too (npx there is npx.cmd).
+    await run(process.execPath, [ELEVENTY, "--dryrun", "--quiet"], { cwd: ROOT, maxBuffer: 10 * 1024 * 1024 });
   } catch (e) {
     await restore();
     throw new UserError(`The site wouldn't build with this change, so nothing was published.\n\n${buildError(e)}`);

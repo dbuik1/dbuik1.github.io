@@ -4,10 +4,10 @@
   "type": "module",
   "description": "Personal website of David Buik, built with Eleventy.",
   "scripts": {
-    "start": "npm run build && ELEVENTY_ENV=development eleventy --serve",
+    "start": "npm run build && eleventy --serve",
     "build": "eleventy && pagefind --site _site",
     "write": "node editor/server.js",
-    "clean": "rm -rf _site"
+    "clean": "node -e \"require('fs').rmSync('_site',{recursive:true,force:true})\""
   },
   "engines": {
     "node": ">=20"

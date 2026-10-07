@@ -8,10 +8,10 @@ import * as annotations from "./lib/annotations.js";
 import * as references from "./lib/references.js";
 import * as texts from "./lib/texts.js";
 import * as xref from "./lib/xref.js";
+import { isPreview } from "./lib/preview.js";
 import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
 
-const isDev = process.env.ELEVENTY_ENV === "development";
 const categorySlugs = categories.map((c) => c.slug);
 const levelSlugs = levels.map((l) => l.slug);
 const statusSlugs = statuses.map((s) => s.slug);
@@ -94,7 +94,7 @@ export default function (eleventyConfig) {
 
   // Posts marked `draft: true` appear under `npm start` but never in the published site.
   eleventyConfig.addPreprocessor("drafts", "*", (data) => {
-    if (data.draft && !isDev) return false;
+    if (data.draft && !isPreview()) return false;
   });
 
   eleventyConfig.addCollection("posts", (api) => {

@@ -7,7 +7,7 @@ permalink: /levels/
   {%- for l in levels %}
   <div id="{{ l.slug }}">
     <dt>{{ l.name }}</dt>
-    <dd>{% if l.description %}{{ l.description }}{% else %}<span class="placeholder-inline">[What “{{ l.name }}” means, in your words]</span>{% endif %}</dd>
+    <dd>{{ ("level-" + l.slug) | siteText | safe }}</dd>
   </div>
   {%- endfor %}
 </dl>

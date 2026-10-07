@@ -21,11 +21,16 @@ npm run write    # then open http://127.0.0.1:8081/
 
 - **New post** opens a blank post. Write in the box as you would in any word processor; the toolbar has headings, quotes, lists and links.
 - Category, research level and tags sit under the title. Description, address, project and series are under **More details**.
+- **Image** inserts a picture after the paragraph you're in. You can also paste or drag one into the text. Every image needs a short description for people who can't see it; the caption is optional. Images are saved in `src/images/` and committed with the post that uses them.
+- **Footnote** adds a numbered note at the cursor.
+- **Cite** adds a citation from your reference library at the cursor, with an optional page, chapter, section or paragraph. Citations become footnotes in Chicago notes style: the full reference the first time a source is cited, a short form after that. A post that cites anything gets a bibliography at the end. You can add a new source from the Cite box without leaving the post.
 - **Annotate** adds an annotation after the paragraph you're in. Choose the Westminster Confession, the Scots Confession or the Bible, find the passage (or search for it), then select the words you're annotating. It only accepts words that appear once in the passage, so annotations can't break the build.
 - Drafts save automatically into `drafts/` on your computer. That folder is never committed, so drafts stay private until you publish.
 - **Publish** checks that the site still builds with the post, then commits it to `main` and pushes it, using your own git login. The site updates about a minute later. The repository must be on `main`.
 - Opening a published post edits a private copy; **Update live post** publishes the changes.
 - Posts containing raw HTML can't be edited here, because the editor would drop the HTML. The editor says so when you open one.
+- **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, the colophon, the research level descriptions, and projects. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
+- **Reference library** lists your sources. Add one by pasting a DOI, an ISBN or a BibTeX entry. To bring in sources from Zotero, export them as BibTeX (the Better BibTeX add-on gives stable keys) and import the file; entries with the same key are replaced. Library changes are published with your next post, or straight away with **Publish library**.
 
 The rest of this section describes the file format the editor writes, for editing by hand.
 
@@ -82,7 +87,17 @@ Create the file in `src/blog/`, and the preview updates as you save. When you're
 
 ### Changing the labels
 
-Category names are in `src/_data/categories.js` and research level names in `src/_data/levels.js`. Change a `name` there and every page picks it up. The research levels page reads each level's `description` from the same file.
+Category names are in `src/_data/categories.js` and research level names in `src/_data/levels.js`. Change a `name` there and every page picks it up. Each level's description is site text in `src/_text/level-<slug>.md`, edited in the editor under **Site text and projects**.
+
+### Images, footnotes and citations
+
+An image on its own line becomes a figure, with the text in quotes as its caption. The build makes smaller copies in modern formats.
+
+```markdown
+![What the image shows](/images/2026/photo.jpg "Optional caption")
+```
+
+A footnote is `^[The note text.]` straight after the word it belongs to. A citation is `[@key]`, or `[@key, p. 23]` with a page (also `chap.`, `sec.` or `para.`); several sources share one note as `[@calvin1559, p. 23; @smith2020]`. Keys come from `references/library.bib`. A key that isn't in the library stops the build and names the post.
 
 ## Annotating a passage
 
@@ -145,6 +160,10 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/_includes/layouts/base.njk` | The page shell shared by every page |
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
+| `src/_text/` | Site text edited in the editor: home introduction and paragraph, colophon, research level descriptions |
+| `src/images/` | Images used in posts and projects |
+| `references/` | The reference library (`library.bib`), the Chicago notes citation style and its British English locale (both from the [Citation Style Language](https://citationstyles.org) project, CC BY-SA 3.0) |
+| `lib/references.js`, `lib/markdown.js` | Citations and bibliographies, figures and footnotes |
 | `src/blog/` | Posts, plus the Writing and category pages |
 | `src/projects/` | Projects, plus the Projects page |
 | `src/colophon.njk`, `src/feeds.njk`, `src/404.njk` | Footer pages and the not-found page |
@@ -152,7 +171,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `texts/` | Confession and Bible texts that posts can annotate |
 | `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
 | `src/annotations/` | The annotated passages pages |
-| `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, the rest is the page |
+| `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, projects, site text, images and the reference library; the rest is the page |
 | `tools/chokidar-globs/` | A small stand-in for the file watcher behind `npm start`, so the project has no known security warnings. Leave it in place |
 | `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts and projects after each build |
 | `src/_data/categories.js`, `levels.js`, `statuses.js` | Category, research level and project status names |

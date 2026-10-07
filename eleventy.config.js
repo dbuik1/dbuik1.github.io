@@ -3,7 +3,11 @@ import site from "./src/_data/site.js";
 import categories from "./src/_data/categories.js";
 import levels from "./src/_data/levels.js";
 import statuses from "./src/_data/statuses.js";
+import { eleventyImageTransformPlugin } from "@11ty/eleventy-img";
 import * as annotations from "./lib/annotations.js";
+import * as references from "./lib/references.js";
+import * as texts from "./lib/texts.js";
+import { configure as configureMarkdown } from "./lib/markdown.js";
 
 const isDev = process.env.ELEVENTY_ENV === "development";
 const categorySlugs = categories.map((c) => c.slug);
@@ -57,6 +61,34 @@ export default function (eleventyConfig) {
 
   eleventyConfig.addWatchTarget("./lib/");
   eleventyConfig.addWatchTarget("./texts/");
+  eleventyConfig.addWatchTarget("./references/");
+  eleventyConfig.addWatchTarget("./src/_text/");
+
+  // Site text is read by the `siteText` filter, not built as pages.
+  eleventyConfig.ignores.add("src/_text/**");
+  eleventyConfig.addFilter("siteText", (name) => texts.render(name));
+
+  // Figures from lone images, and footnotes.
+  eleventyConfig.amendLibrary("md", configureMarkdown);
+
+  // Citations become footnotes with a bibliography; see lib/references.js.
+  eleventyConfig.addPreprocessor("citations", "md", (data, content) => {
+    try {
+      return references.cite(content);
+    } catch (e) {
+      throw new Error(`${data.page.inputPath}: ${e.message}`);
+    }
+  });
+  eleventyConfig.addTransform("bibliography", function (content) {
+    return (this.page.outputPath || "").endsWith(".html") ? references.placeBibliography(content) : content;
+  });
+
+  // Every <img> gets resized copies in modern formats, with its size set to avoid layout shift.
+  eleventyConfig.addPlugin(eleventyImageTransformPlugin, {
+    formats: ["avif", "webp", "auto"],
+    widths: [640, 1280, "auto"],
+    htmlOptions: { imgAttributes: { loading: "lazy", decoding: "async", sizes: "(min-width: 42rem) 42rem, 100vw" } },
+  });
 
   // Posts marked `draft: true` appear under `npm start` but never in the published site.
   eleventyConfig.addPreprocessor("drafts", "*", (data) => {

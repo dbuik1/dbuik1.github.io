@@ -2,8 +2,8 @@
 layout: layouts/base.njk
 ---
 <section class="intro">
-  <h1><span class="placeholder-inline">[Your one-line introduction]</span></h1>
-  <p class="placeholder">[A short paragraph about you, in your words]</p>
+  <h1>{{ "home-intro" | siteText | safe }}</h1>
+  {{ "home-about" | siteText | safe }}
 </section>
 
 <section class="home-section">

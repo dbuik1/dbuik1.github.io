@@ -130,4 +130,83 @@ select, .details input, .more input, .picker input, .picker textarea {
 .picker-foot { display: flex; justify-content: flex-end; }
 
 /* After publishing, only the confirmation and the post itself stay on screen. */
-#write.done .details, #write.done .more, #write.done .toolbar { display: none; }
+#write.done .details, #write.done .more, #write.done .toolbar { display: none !important; }
+
+/* Other screens */
+.home-nav { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; font-family: var(--font-label); margin-top: -0.5rem; }
+.secondary {
+  font-family: var(--font-label); font-weight: 500; color: var(--accent); background: transparent;
+  border: 1px solid var(--rule); border-radius: 6px; padding: 0.35rem 0.9rem; cursor: pointer;
+}
+.secondary:disabled { opacity: 0.5; cursor: default; }
+.text-label { font-size: 2rem; }
+.inline-text {
+  font: inherit; font-family: var(--font-display); font-size: 1.5rem; color: var(--fg); background: transparent;
+  border: 0; border-bottom: 1px solid var(--rule); padding: 0.25rem 0; width: 100%;
+}
+.inline-text:focus { outline: none; border-bottom-color: var(--accent); }
+.details .grow { flex: 1; min-width: 14rem; }
+.details .grow input { flex: 1; }
+.links-field { display: grid; gap: 0.4rem; }
+.link-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.link-rows li { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.link-rows input { flex: 1; min-width: 10rem; }
+.links-field .link-button { justify-self: start; }
+
+.toolbar-gap { flex: 1; }
+.toolbar .insert-button { color: var(--accent); border-color: var(--rule); }
+
+/* Notes in the text: footnotes and citations share one counter, as on the site. */
+#content .prose { counter-reset: note; }
+.editor-note { cursor: pointer; border-radius: 3px; }
+.editor-note::before {
+  counter-increment: note; content: counter(note);
+  font-family: var(--font-label); font-size: 0.75em; vertical-align: super; line-height: 0; color: var(--accent); padding: 0 0.1em;
+}
+.editor-citation::after {
+  content: attr(data-label); font-family: var(--font-label); font-size: 0.75em; color: var(--muted);
+  background: var(--placeholder-bg); border-radius: 999px; padding: 0 0.45em; margin-left: 0.1em; vertical-align: 0.15em;
+}
+.editor-note:hover, .editor-note:focus-visible, .editor-note.ProseMirror-selectednode { background: var(--mark); outline: none; }
+.editor-figure { margin: 1rem 0; display: grid; gap: 0.4rem; }
+.editor-figure img { display: block; max-height: 24rem; width: auto; max-width: 100%; }
+.editor-figure figcaption { font-family: var(--font-label); font-size: 0.9375rem; color: var(--muted); }
+.editor-figure.ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* Image, footnote and cite dialogs */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.drop-zone {
+  display: grid; place-items: center; gap: 0.5rem; min-height: 8rem; padding: 1rem; cursor: pointer;
+  border: 2px dashed var(--rule); border-radius: 8px; color: var(--muted); text-align: center;
+}
+.drop-zone.over, .drop-zone:focus-within { border-color: var(--accent); }
+.drop-zone img { max-height: 14rem; width: auto; }
+.picker-foot { align-items: center; gap: 1rem; }
+.picker-foot .hint { margin-right: auto; }
+.picker-foot .link-button { margin-right: auto; }
+.picker input:not([type]), .picker input[type="search"], .picker input[type="text"], .picker select { min-width: 0; }
+.wide-search { margin-left: 0; display: flex; }
+.wide-search input { flex: 1; }
+.search-results .result[aria-pressed="true"] { background: var(--placeholder-bg); box-shadow: inset 3px 0 0 var(--accent); }
+.cite-chosen { border-left: 3px solid var(--accent); padding-left: 0.75rem; font-size: 0.9375rem; }
+.cite-chosen .picker-step { margin-bottom: 0.25rem; }
+.add-row { display: flex; gap: 0.5rem; align-items: flex-start; margin-top: 0.5rem; }
+.add-row textarea {
+  flex: 1; font: inherit; color: var(--fg); background: var(--bg); resize: vertical;
+  border: 1px solid var(--rule); border-radius: 6px; padding: 0.35rem 0.5rem;
+}
+
+/* Reference library */
+.add-source { display: grid; gap: 0.35rem; font-family: var(--font-label); }
+.add-source > label { font-weight: 700; color: var(--accent); }
+.add-source .add-row { margin-top: 0; }
+.add-source .hint { font-size: 0.875rem; margin: 0; }
+.file-link { color: var(--accent); text-decoration: underline; cursor: pointer; }
+.library-filter { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0.35rem 0.5rem; }
+.source-list { list-style: none; margin: 0; padding: 0; }
+.source-list > li { padding: 0.75rem 0; border-bottom: 1px solid var(--rule); display: grid; gap: 0.35rem; }
+.source-entry { padding-left: 1.5rem; text-indent: -1.5rem; }
+.source-meta { margin: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; align-items: baseline; font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); }
+.source-meta code { font-size: 0.8125rem; }
+.source-edit { display: grid; gap: 0.5rem; }
+.source-edit textarea { font-family: ui-monospace, monospace; font-size: 0.8125rem; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0.5rem; }

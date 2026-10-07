@@ -14,7 +14,13 @@
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.1.6",
+    "@11ty/eleventy-img": "^7.0.0",
     "@11ty/eleventy-plugin-rss": "^3.1.0",
+    "@citation-js/core": "^0.9.0",
+    "@citation-js/plugin-bibtex": "^0.9.0",
+    "@citation-js/plugin-csl": "^0.9.0",
+    "@citation-js/plugin-doi": "^0.9.0",
+    "@citation-js/plugin-isbn": "^0.5.0",
     "@tiptap/core": "^3.31.4",
     "@tiptap/markdown": "^3.31.4",
     "@tiptap/pm": "^3.31.4",
@@ -22,6 +28,7 @@
     "chokidar": "file:tools/chokidar-globs",
     "js-yaml": "^4.3.2",
     "markdown-it": "^14.3.2",
+    "markdown-it-footnote": "^4.0.0",
     "pagefind": "^1.5.2",
     "vite": "^8.3.3"
   },

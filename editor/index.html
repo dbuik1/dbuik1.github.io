@@ -18,6 +18,10 @@
         <h1>Writing</h1>
         <button type="button" class="primary" id="new-post">New post</button>
       </header>
+      <nav class="home-nav" aria-label="Other things to edit">
+        <button type="button" class="link-button" id="go-site">Site text and projects</button>
+        <button type="button" class="link-button" id="go-references">Reference library</button>
+      </nav>
       <section class="home-section">
         <h2>Drafts</h2>
         <p class="lede">Saved only on this computer until you publish.</p>
@@ -29,22 +33,71 @@
       </section>
     </main>
 
-    <!-- Writing a post -->
+    <!-- Site text and projects -->
+    <main id="site" class="view" hidden>
+      <header class="write-bar">
+        <button type="button" class="link-button back">← All posts</button>
+      </header>
+      <h1>Site text and projects</h1>
+      <section class="home-section">
+        <h2>Site text</h2>
+        <ul class="doc-list" id="text-list"></ul>
+      </section>
+      <section class="home-section">
+        <div class="home-head">
+          <h2>Projects</h2>
+          <button type="button" class="secondary" id="new-project">New project</button>
+        </div>
+        <ul class="doc-list" id="project-list"></ul>
+      </section>
+    </main>
+
+    <!-- Reference library -->
+    <main id="references" class="view" hidden>
+      <header class="write-bar">
+        <button type="button" class="link-button back">← All posts</button>
+        <span class="save-state" id="library-state" aria-live="polite"></span>
+        <span class="publish-group" id="library-publish-group" hidden>
+          <button type="button" class="primary" id="library-publish">Publish library</button>
+          <span class="hint">Commits and pushes the library on its own. Publishing a post also includes it.</span>
+        </span>
+      </header>
+      <div class="callout" id="library-callout" role="status" hidden></div>
+      <h1>Reference library</h1>
+      <form class="add-source" id="add-source">
+        <label for="source-input">Add a source</label>
+        <div class="add-row">
+          <textarea id="source-input" rows="1" placeholder="A DOI, an ISBN, or a BibTeX entry" autocomplete="off"></textarea>
+          <button type="submit" class="primary" id="source-add">Add</button>
+        </div>
+        <p class="hint">DOIs and ISBNs are looked up online. To bring in Zotero items, export them as BibTeX (Better BibTeX works well), then
+          <label class="file-link">import the file<input type="file" id="import-file" accept=".bib,.bibtex,.json,text/plain,application/json" hidden></label>.
+          Entries with the same key are replaced.</p>
+      </form>
+      <input type="search" id="library-filter" class="library-filter" placeholder="Filter by author, title or key" aria-label="Filter the library" autocomplete="off">
+      <ul class="source-list" id="source-list"></ul>
+    </main>
+
+    <!-- Writing a post, a project or site text -->
     <main id="write" class="view" hidden>
       <header class="write-bar">
-        <button type="button" class="link-button" id="back">← All posts</button>
+        <button type="button" class="link-button" id="back">← Back</button>
         <span class="save-state" id="save-state" aria-live="polite"></span>
         <span class="publish-group">
           <button type="button" class="primary" id="publish">Publish</button>
-          <span class="hint" id="publish-hint">Checks the post, then commits and pushes it to the live site.</span>
+          <span class="hint" id="publish-hint"></span>
         </span>
       </header>
 
       <div class="callout" id="callout" role="status" hidden></div>
 
-      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off">
+      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off" data-kinds="post project">
+      <div data-kinds="text inline">
+        <h1 class="text-label" id="text-label"></h1>
+        <p class="lede" id="text-where"></p>
+      </div>
 
-      <div class="details">
+      <div class="details" data-kinds="post">
         <label>Category <select id="category"></select></label>
         <label>Research level <select id="level"></select></label>
         <div class="tags-field">
@@ -54,18 +107,29 @@
           <datalist id="tag-options"></datalist>
         </div>
       </div>
+      <div class="details" data-kinds="project">
+        <label>Status <select id="status"></select></label>
+        <label class="grow">Summary <input id="summary" placeholder="One line shown in lists" autocomplete="off"></label>
+      </div>
 
-      <details class="more">
+      <details class="more" data-kinds="post project">
         <summary>More details</summary>
         <div class="more-grid">
-          <label class="wide">Description <input id="description" placeholder="One line for link previews and search results"></label>
-          <label>Address <span class="slug-field"><span class="muted">/blog/</span><input id="slug" autocomplete="off"><span class="muted">/</span></span></label>
-          <label>Project <select id="project"><option value="">None</option></select></label>
-          <label>Series <input id="series" list="series-options" autocomplete="off"><datalist id="series-options"></datalist></label>
+          <label class="wide" data-kinds="post">Description <input id="description" placeholder="One line for link previews and search results"></label>
+          <label>Address <span class="slug-field"><span class="muted" id="slug-prefix">/blog/</span><input id="slug" autocomplete="off"><span class="muted">/</span></span></label>
+          <label data-kinds="post">Project <select id="project"><option value="">None</option></select></label>
+          <label data-kinds="post">Series <input id="series" list="series-options" autocomplete="off"><datalist id="series-options"></datalist></label>
+          <div class="wide links-field" data-kinds="project">
+            <span>Links</span>
+            <ul class="link-rows" id="link-rows"></ul>
+            <button type="button" class="link-button" id="add-link">Add a link</button>
+          </div>
         </div>
       </details>
 
-      <div class="toolbar" role="toolbar" aria-label="Formatting">
+      <input id="inline-text" class="inline-text" aria-labelledby="text-label" autocomplete="off" data-kinds="inline">
+
+      <div class="toolbar" role="toolbar" aria-label="Formatting" data-kinds="post project text">
         <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
         <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
         <button type="button" data-cmd="h2" title="Heading">Heading</button>
@@ -74,10 +138,14 @@
         <button type="button" data-cmd="bullets" title="Bulleted list">• List</button>
         <button type="button" data-cmd="numbers" title="Numbered list">1. List</button>
         <button type="button" data-cmd="link" title="Link (Ctrl+K)">Link</button>
-        <button type="button" data-cmd="annotate" class="annotate-button" title="Annotate a confession or Bible passage">Annotate</button>
+        <span class="toolbar-gap"></span>
+        <button type="button" data-cmd="image" class="insert-button" title="Insert an image">Image</button>
+        <button type="button" data-cmd="footnote" class="insert-button" title="Add a footnote at the cursor" data-kinds="post project">Footnote</button>
+        <button type="button" data-cmd="cite" class="insert-button" title="Cite a source from your library" data-kinds="post project">Cite</button>
+        <button type="button" data-cmd="annotate" class="insert-button" title="Annotate a confession or Bible passage" data-kinds="post">Annotate</button>
       </div>
 
-      <div id="content" class="post-body"></div>
+      <div id="content" class="post-body" data-kinds="post project text"></div>
     </main>
   </div>
 
@@ -115,6 +183,82 @@
 
       <footer class="picker-foot">
         <button type="submit" class="primary" id="picker-save" disabled>Insert annotation</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="image-dialog" class="picker" aria-labelledby="image-title">
+    <form method="dialog" class="picker-form" id="image-form">
+      <header class="picker-head">
+        <h2 id="image-title">Insert an image</h2>
+        <button type="button" class="link-button" data-close>Cancel</button>
+      </header>
+      <label class="drop-zone" id="image-drop">
+        <img id="image-preview" alt="" hidden>
+        <span id="image-drop-text">Drop an image here, or choose a file</span>
+        <input type="file" id="image-file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" class="visually-hidden">
+      </label>
+      <label class="note-field"><span>Description for people who can't see it <span class="muted">(required)</span></span>
+        <textarea id="image-alt" rows="2" required></textarea>
+      </label>
+      <label class="note-field"><span>Caption <span class="muted">(optional, shown under the image)</span></span>
+        <input id="image-caption" autocomplete="off">
+      </label>
+      <p class="phrase-state bad" id="image-problem" aria-live="polite"></p>
+      <footer class="picker-foot">
+        <span class="hint">Large images are shrunk on this computer; the site makes smaller copies when it builds.</span>
+        <button type="submit" class="primary" id="image-save">Insert image</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="note-dialog" class="picker" aria-labelledby="note-title">
+    <form method="dialog" class="picker-form" id="note-form">
+      <header class="picker-head">
+        <h2 id="note-title">Footnote</h2>
+        <button type="button" class="link-button" data-close>Cancel</button>
+      </header>
+      <label class="note-field"><span>Note text. <span class="muted">*Italics* work, and you can cite with [@key].</span></span>
+        <textarea id="note-text" rows="4" required></textarea>
+      </label>
+      <p class="phrase-state bad" id="note-problem" aria-live="polite"></p>
+      <footer class="picker-foot">
+        <button type="button" class="link-button" id="note-remove" hidden>Remove footnote</button>
+        <button type="submit" class="primary" id="note-save">Add footnote</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="cite-dialog" class="picker" aria-labelledby="cite-title">
+    <form method="dialog" class="picker-form" id="cite-form">
+      <header class="picker-head">
+        <h2 id="cite-title">Cite a source</h2>
+        <button type="button" class="link-button" data-close>Cancel</button>
+      </header>
+      <label class="search-field wide-search">Find <input id="cite-search" type="search" placeholder="Author, title or key" autocomplete="off"></label>
+      <ul class="search-results" id="cite-results"></ul>
+      <details class="more" id="cite-add">
+        <summary>Not in your library? Add it</summary>
+        <div class="add-row">
+          <textarea id="cite-source-input" rows="1" placeholder="A DOI, an ISBN, or a BibTeX entry" autocomplete="off"></textarea>
+          <button type="button" class="secondary" id="cite-source-add">Add</button>
+        </div>
+      </details>
+      <div class="cite-chosen" id="cite-chosen" hidden></div>
+      <div class="locate-fields">
+        <label>Where <select id="cite-label">
+          <option value="p.">Page</option>
+          <option value="chap.">Chapter</option>
+          <option value="sec.">Section</option>
+          <option value="para.">Paragraph</option>
+          <option value="">Whole work</option>
+        </select></label>
+        <label><input id="cite-locator" placeholder="e.g. 23 or 23–25" autocomplete="off" size="12"></label>
+      </div>
+      <p class="phrase-state" id="cite-preview" aria-live="polite"></p>
+      <footer class="picker-foot">
+        <button type="button" class="link-button" id="cite-remove" hidden>Remove citation</button>
+        <button type="submit" class="primary" id="cite-save" disabled>Insert citation</button>
       </footer>
     </form>
   </dialog>

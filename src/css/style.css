@@ -231,3 +231,17 @@ html[data-annotations="compact"] .anno-chip { display: inline-block; margin: 0 0
 }
 .search mark { background: var(--mark); color: inherit; }
 .search .pagefind-ui__search-clear { color: var(--accent); background: var(--bg); }
+
+/* Figures, notes and bibliography */
+.post-body figure.figure { margin: 1.5rem 0; display: grid; gap: 0.5rem; }
+.post-body figure.figure img { display: block; border-radius: 2px; }
+.post-body figure.figure figcaption { font-family: var(--font-label); font-size: 0.9375rem; color: var(--muted); }
+.footnote-ref { font-family: var(--font-label); font-size: 0.75em; line-height: 0; }
+.footnote-ref a { text-decoration: none; padding: 0 0.1em; }
+.footnotes, .bibliography { display: grid; gap: 0.75rem; margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); font-size: 0.9375rem; }
+.footnotes-list { margin: 0; padding-left: 1.5rem; display: grid; gap: 0.4rem; }
+.footnotes-list p { margin: 0; }
+.footnote-backref { text-decoration: none; font-family: var(--font-label); }
+.footnote-item:target, .footnote-ref:target { background: var(--mark); border-radius: 2px; }
+.bibliography .csl-entry { padding-left: 1.5rem; text-indent: -1.5rem; }
+.footnotes + .bibliography { margin-top: 1rem; }

@@ -17,7 +17,6 @@ export default {
   footer: [
     { label: "Feeds", url: "/feeds/" },
     { label: "Colophon", url: "/colophon/" },
-    { label: "AI and this site", url: "/ai/" },
     { label: "Changelog", url: "/changelog/" },
   ],
 };

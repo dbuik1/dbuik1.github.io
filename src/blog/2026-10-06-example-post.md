@@ -1,7 +1,7 @@
 ---
 title: Example post
 description: One line for link previews and search results.
-level: passing
+level: unexplored
 tags: [example]
 draft: true
 ---

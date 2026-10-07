@@ -1,0 +1,53 @@
+---
+layout: layouts/page.njk
+title: Graph
+description: Every post, project, tag and annotated passage, and how they connect.
+permalink: /graph/
+---
+{#- The drawing needs JavaScript; the list below it works without and for screen readers. -#}
+<div class="graph" id="graph" hidden>
+  <div class="graph-controls">
+    <fieldset class="graph-filters">
+      <legend class="visually-hidden">Show</legend>
+      <label><input type="checkbox" data-kind="project" checked> <span class="graph-key key-project"></span>Projects</label>
+      <label><input type="checkbox" data-kind="tag" checked> <span class="graph-key key-tag"></span>Tags</label>
+      <label><input type="checkbox" data-kind="passage" checked> <span class="graph-key key-passage"></span>Passages</label>
+      <span class="graph-key-static"><span class="graph-key key-post"></span>Posts</span>
+    </fieldset>
+    <span class="graph-hint">Drag to move, scroll or pinch to zoom, select a dot to open it.</span>
+    <button type="button" class="graph-reset" id="graph-reset">Fit to screen</button>
+  </div>
+  <div class="graph-frame">
+    <svg class="graph-canvas" id="graph-canvas" role="group" aria-label="Graph of the site. Each dot is a link; the same connections are listed below."></svg>
+  </div>
+  <p class="graph-focus" id="graph-focus" aria-live="polite"></p>
+</div>
+
+{%- set g = collections.graph %}
+<details class="graph-list" id="graph-list" open>
+  <summary>Everything as a list</summary>
+  {%- set kinds = [["post", "Posts"], ["project", "Projects"], ["tag", "Tags"], ["passage", "Annotated passages"]] %}
+  {%- for k in kinds %}
+  {%- set group = g.nodes | byField("kind", k[0]) %}
+  {%- if group | length %}
+  <h2>{{ k[1] }}</h2>
+  <ul>
+    {%- for n in group %}
+    <li><a href="{{ n.url }}">{{ n.title }}</a>
+      {%- set near = g.links | linkedTo(n.id) %}
+      {%- if near | length %} <span class="muted">connects to</span>
+      {%- for id in near %}{% set m = g.nodes | byField("id", id) | first %} <a href="{{ m.url }}">{{ m.title }}</a>{% if not loop.last %},{% endif %}{% endfor %}
+      {%- endif %}
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- endfor %}
+  {%- if not g.nodes | length %}<p class="empty">Nothing to show yet.</p>{% endif %}
+</details>
+
+<script src="/js/vendor/d3-dispatch.min.js" defer></script>
+<script src="/js/vendor/d3-quadtree.min.js" defer></script>
+<script src="/js/vendor/d3-timer.min.js" defer></script>
+<script src="/js/vendor/d3-force.min.js" defer></script>
+<script src="/js/graph.js" defer></script>

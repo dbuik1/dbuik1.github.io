@@ -8,6 +8,7 @@ import * as references from "./lib/references.js";
 import * as texts from "./lib/texts.js";
 import * as xref from "./lib/xref.js";
 import * as tags from "./lib/tags.js";
+import * as graph from "./lib/graph.js";
 import { isPreview } from "./lib/preview.js";
 import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
@@ -59,6 +60,10 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/app-ads.txt");
   eleventyConfig.addPassthroughCopy("src/css");
   eleventyConfig.addPassthroughCopy("src/js");
+  // The force layout behind the graph page, from npm.
+  for (const name of ["d3-dispatch", "d3-quadtree", "d3-timer", "d3-force"]) {
+    eleventyConfig.addPassthroughCopy({ [`node_modules/${name}/dist/${name}.min.js`]: `js/vendor/${name}.min.js` });
+  }
 
   eleventyConfig.addWatchTarget("./lib/");
   eleventyConfig.addWatchTarget("./texts/");
@@ -118,9 +123,6 @@ export default function (eleventyConfig) {
     }
     return map;
   });
-  // Seeds are one-line ideas; "writing" is everything else, for the home page and main feed.
-  const oneLine = new Set(levels.filter((l) => l.oneLine).map((l) => l.slug));
-  eleventyConfig.addCollection("writing", (api) => allPosts(api).filter((p) => !oneLine.has(p.data.level)));
   for (const slug of levelSlugs) {
     eleventyConfig.addCollection(`level-${slug}`, (api) => allPosts(api).filter((p) => p.data.level === slug));
   }
@@ -138,6 +140,9 @@ export default function (eleventyConfig) {
     return (this.page.outputPath || "").endsWith(".html") ? annotations.linkInlinePhrases(content) : content;
   });
   eleventyConfig.addCollection("annotations", (api) => annotations.collect(allPosts(api)));
+  eleventyConfig.addCollection("graph", (api) =>
+    graph.build({ posts: allPosts(api), projects: allProjects(api), passages: annotations.collect(allPosts(api)), levels })
+  );
   eleventyConfig.addGlobalData("stances", annotations.stances);
   eleventyConfig.addFilter("stanceName", annotations.stanceName);
 
@@ -151,9 +156,11 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("byField", (array, field, value) => array.filter((item) => item[field] === value));
   eleventyConfig.addFilter("withTag", tags.withTag);
   eleventyConfig.addFilter("tagUrl", tags.url);
+  eleventyConfig.addFilter("linkedTo", (links, id) =>
+    links.filter((l) => l.source === id || l.target === id).map((l) => (l.source === id ? l.target : l.source))
+  );
   eleventyConfig.addFilter("ancestry", tags.ancestry);
   eleventyConfig.addFilter("tagLeaf", tags.leaf);
-  eleventyConfig.addFilter("isOneLine", (slug) => oneLine.has(slug));
   eleventyConfig.addFilter("latest", (history) => (Array.isArray(history) && history.length ? history.at(-1) : null));
   eleventyConfig.addFilter("byFileSlug", (items, slug) => items.filter((i) => i.fileSlug === slug));
   eleventyConfig.addFilter("byStatus", (projects, status) => projects.filter((p) => p.data.status === status));
@@ -170,7 +177,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPlugin(feedPlugin, {
     type: "atom",
     outputPath: "/feed.xml",
-    collection: { name: "writing", limit: 20 },
+    collection: { name: "posts", limit: 20 },
     metadata: feedMeta("All writing"),
   });
   for (const l of levels) {

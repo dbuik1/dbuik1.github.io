@@ -30,13 +30,9 @@ layout: layouts/base.njk
   </nav>
   {%- endif %}
 
-  {%- if content | striptags | trim %}
   <div class="post-body">
     {{ content | safe }}
   </div>
-  {%- elif level | isOneLine %}
-  <p class="seed-note">{{ ("level-" + level) | siteText | safe }} <a href="/levels/#{{ level }}">About research levels</a></p>
-  {%- endif %}
 
   {%- set linkers = collections.backlinks[page.fileSlug] %}
   {%- if linkers and linkers | length %}

@@ -17,9 +17,5 @@ eleventyComputed:
   <a href="/tags/">Tags</a>
 </nav>
 {%- set postList = collections["level-" + lvl.slug] %}
-{%- if lvl.oneLine %}
-{% include "partials/seed-list.njk" %}
-{%- else %}
 {% include "partials/post-list.njk" %}
-{%- endif %}
 <p class="subscribe"><a href="/blog/{{ lvl.slug }}/feed.xml">Subscribe to {{ lvl.name }}</a></p>

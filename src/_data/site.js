@@ -10,11 +10,13 @@ export default {
     { label: "Home", url: "/" },
     { label: "Writing", url: "/blog/" },
     { label: "Projects", url: "/projects/" },
+    { label: "Graph", url: "/graph/" },
     { label: "Search", url: "/search/" },
   ],
   footer: [
     { label: "Feeds", url: "/feeds/" },
     { label: "Colophon", url: "/colophon/" },
+    { label: "AI and this site", url: "/ai/" },
     { label: "Changelog", url: "/changelog/" },
   ],
 };

@@ -3,7 +3,7 @@ layout: layouts/page.njk
 title: Writing
 permalink: /blog/
 ---
-{#- Grouped by how researched each piece is, most researched first; seeds come last as a compact list. -#}
+{#- Grouped by how far each topic has been explored, most researched first. -#}
 <nav class="filters" aria-label="Writing">
   {%- for l in levels | reverse %}
   <a href="/blog/{{ l.slug }}/">{{ l.name }}</a>
@@ -14,13 +14,9 @@ permalink: /blog/
 {%- for l in levels | reverse %}
 {%- set postList = collections["level-" + l.slug] %}
 {%- if postList | length %}
-<section class="level-group{% if l.oneLine %} is-one-line{% endif %}" aria-labelledby="group-{{ l.slug }}">
+<section class="level-group" aria-labelledby="group-{{ l.slug }}">
   <h2 id="group-{{ l.slug }}"><a href="/blog/{{ l.slug }}/">{{ l.name }}</a> <span class="count">{{ postList | length }}</span></h2>
-  {%- if l.oneLine %}
-  {% include "partials/seed-list.njk" %}
-  {%- else %}
   {% include "partials/post-list.njk" %}
-  {%- endif %}
 </section>
 {%- endif %}
 {%- endfor %}

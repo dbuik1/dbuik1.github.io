@@ -100,7 +100,6 @@ fields.level.append(option("", "Choose…"), ...meta.levels.map((l) => option(l.
 fields.project.append(...meta.projects.map((p) => option(p.slug, p.title || p.slug)));
 fields.status.append(option("", "Choose…"), ...meta.statuses.map((x) => option(x.slug, x.name)));
 $("tag-options").append(...meta.tags.map((t) => option(t, t)));
-$("seed-tag-options").append(...meta.tags.map((t) => option(t, t)));
 $("series-options").append(...meta.series.map((s) => option(s, s)));
 
 const slugify = (s) =>
@@ -186,14 +185,13 @@ fields.slug.addEventListener("input", () => {
   slugTouched = true;
   changed();
 });
-// A seed is only its title; moving a published post to another level is recorded with the date.
+// Moving a published post to another level is recorded with the date, so the editor says so first.
 function levelHint() {
   const hint = $("level-hint");
   const level = meta.levels.find((l) => l.slug === fields.level.value);
   const live = meta.levels.find((l) => l.slug === doc?.liveLevel);
   let text = "";
   if (live && level && live.slug !== level.slug) text = `Publishing moves this from ${live.name} to ${level.name} and shows the date it got there.`;
-  else if (level?.oneLine) text = `The title is the whole ${level.name.toLowerCase()}. Text below it is optional.`;
   hint.textContent = text;
   hint.hidden = !text;
 }
@@ -565,48 +563,6 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "s" && !$("write").hidden) {
     e.preventDefault();
     saveDraft();
-  }
-});
-
-// ---- Seeds: one-line ideas published straight from the home screen ----
-const seedLevel = meta.levels.find((l) => l.oneLine);
-if (!seedLevel) $("seed-form").hidden = true;
-else $("seed-label").textContent = `Add a ${seedLevel.name.toLowerCase()}`;
-$("seed-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const title = $("seed-title").value.trim();
-  if (!title) return;
-  const button = $("seed-publish");
-  const state = $("seed-state");
-  button.disabled = true;
-  button.textContent = "Checking…";
-  state.hidden = true;
-  try {
-    const seedTags = [...new Set($("seed-tags").value.split(",").map((t) => t.trim()).filter(Boolean))];
-    const result = await api("POST", "/api/publish", {
-      kind: "post",
-      file: null,
-      meta: { title, level: seedLevel.slug, tags: seedTags, slug: slugify(title) },
-      body: "",
-    });
-    state.className = `seed-state ${result.pushed ? "ok" : "warn"}`;
-    state.replaceChildren(
-      result.pushed
-        ? `“${title}” is published and will be live in about a minute. `
-        : `“${title}” is committed on this computer but couldn't be pushed, so it isn't live yet. Run git push in the site folder. `,
-      Object.assign(document.createElement("a"), { href: result.url, target: "_blank", rel: "noopener", textContent: "Open it" })
-    );
-    $("seed-title").value = "";
-    $("seed-tags").value = "";
-    showHome();
-  } catch (err) {
-    state.className = "seed-state error";
-    state.textContent = err.message;
-  } finally {
-    state.hidden = false;
-    button.disabled = false;
-    button.textContent = "Publish";
-    $("seed-title").focus();
   }
 });
 

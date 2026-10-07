@@ -15,6 +15,7 @@ import sharp from "sharp";
 import * as annotations from "../lib/annotations.js";
 import * as references from "../lib/references.js";
 import * as texts from "../lib/texts.js";
+import * as xref from "../lib/xref.js";
 import site from "../src/_data/site.js";
 import categories from "../src/_data/categories.js";
 import levels from "../src/_data/levels.js";
@@ -195,7 +196,7 @@ const git = async (...args) => (await run("git", args, { cwd: ROOT })).stdout.tr
 function buildError(e) {
   const out = `${e.stdout ?? ""}\n${e.stderr ?? ""}`;
   const lines = out.split("\n").map((l) => l.replace(/^\[11ty\]\s?/, "")).filter((l) => l.trim());
-  const start = lines.findIndex((l) => /Post |annotation|Error/.test(l));
+  const start = lines.findIndex((l) => /Post |annotation|Cross-link|Error/.test(l));
   const useful = (start >= 0 ? lines.slice(start) : lines).filter((l) => !/^\s+at |Original error stack|Eleventy Fatal Error/.test(l));
   // Eleventy repeats the same error several times; show each line once.
   return [...new Set(useful)].slice(0, 8).join("\n") || e.message;
@@ -490,6 +491,21 @@ const routes = {
   "POST /api/references/delete": (b) => deleteReference(b),
   "POST /api/references/publish": () => publishLibrary(),
   "POST /api/references/preview": async (b) => references.preview(b.key, b.locator),
+  "GET /api/xref/targets": async () =>
+    [...xref.targets().values()].map(({ slug, kind, title, draft }) => ({ slug, kind, title, draft })).sort((a, b) => a.title.localeCompare(b.title)),
+  "POST /api/xref/target": async (b) => {
+    const t = xref.targets().get(b.slug);
+    if (!t) throw new UserError("That post or project doesn't exist.");
+    return { slug: t.slug, title: t.title, kind: t.kind, draft: t.draft, paragraphs: t.paragraphs };
+  },
+  "POST /api/xref/check": async (b) => {
+    try {
+      xref.resolve(b.slug, b.quote);
+      return { problem: null };
+    } catch (e) {
+      return { problem: e.message.charAt(0).toUpperCase() + e.message.slice(1) };
+    }
+  },
 };
 
 const vite = await createViteServer({

@@ -245,3 +245,49 @@ html[data-annotations="compact"] .anno-chip { display: inline-block; margin: 0 0
 .footnote-item:target, .footnote-ref:target { background: var(--mark); border-radius: 2px; }
 .bibliography .csl-entry { padding-left: 1.5rem; text-indent: -1.5rem; }
 .footnotes + .bibliography { margin-top: 1rem; }
+
+/* Cross-links: preview card and reading overlay */
+.backlinks { display: grid; gap: 0.5rem; font-family: var(--font-label); }
+.backlinks ul { margin: 0; padding-left: 1.25rem; }
+::highlight(xref-target) { background-color: var(--mark); color: inherit; }
+.xref-preview {
+  position: fixed; inset: auto; margin: 0; width: min(24rem, calc(100vw - 32px));
+  display: grid; gap: 0.5rem; padding: 1rem; overflow: auto; max-height: min(60vh, 26rem);
+  background: var(--bg); color: var(--fg); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow);
+}
+.xref-preview:popover-open, .xref-preview:not([popover]):not([hidden]) { display: grid; }
+.xref-preview[popover]:not(:popover-open) { display: none; }
+.xref-title { margin: 0; font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; }
+.xref-preview .post-meta { font-size: 0.8125rem; }
+.xref-excerpt { font-size: 0.9375rem; }
+.xref-excerpt > * { margin: 0; }
+.xref-actions { margin: 0.25rem 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; font-family: var(--font-label); }
+.xref-actions button {
+  font: inherit; font-weight: 500; color: var(--bg); background: var(--accent);
+  border: 0; border-radius: 6px; padding: 0.3rem 0.8rem; cursor: pointer;
+}
+html.reader-open { overflow: hidden; }
+.reader {
+  width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+  background: var(--bg); color: var(--fg);
+}
+.reader[open] { display: grid; grid-template-rows: auto 1fr; }
+.reader::backdrop { background: var(--bg); }
+.reader-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; padding: 0.6rem 16px;
+  border-bottom: 1px solid var(--rule); font-family: var(--font-label); font-size: 0.9375rem;
+}
+.reader-back { font: inherit; font-weight: 500; color: var(--accent); background: none; border: 0; padding: 0.2rem 0; cursor: pointer; text-align: left; }
+.reader-trail { flex: 1; display: flex; flex-wrap: wrap; gap: 0 0.4rem; list-style: none; margin: 0; padding: 0; color: var(--muted); font-size: 0.875rem; min-width: 0; }
+.reader-trail li + li::before { content: "›"; margin-right: 0.4rem; }
+.reader-trail [aria-current] { color: var(--fg); }
+.reader-scroll { overflow: auto; overscroll-behavior: contain; }
+.reader-page { max-width: var(--measure); margin: 0 auto; padding: 2rem 16px 4rem; }
+.reader-page h1:focus { outline: none; }
+.reader figure.annotation { display: grid !important; }
+.reader .anno-chip { display: none !important; }
+.reader-flash { background: var(--mark); transition: background 1s; }
+.reader-open { margin-left: auto; }
+@media (max-width: 34rem) {
+  .reader-trail { display: none; }
+}

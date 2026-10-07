@@ -21,6 +21,16 @@ layout: layouts/base.njk
     {{ content | safe }}
   </div>
 
+  {%- set linkers = collections.backlinks[page.fileSlug] %}
+  {%- if linkers and linkers | length %}
+  <section class="backlinks" aria-labelledby="backlinks-heading">
+    <h2 id="backlinks-heading">Linked from</h2>
+    <ul>
+      {%- for p in linkers %}<li><a class="xref" data-xref="{{ p.fileSlug }}" href="{{ p.url }}">{{ p.data.title }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
   <section class="home-section">
     <h2>Writing about this project</h2>
     {%- set postList = collections.posts | byProject(page.fileSlug) %}

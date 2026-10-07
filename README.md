@@ -24,6 +24,7 @@ npm run write    # then open http://127.0.0.1:8081/
 - **Image** inserts a picture after the paragraph you're in. You can also paste or drag one into the text. Every image needs a short description for people who can't see it; the caption is optional. Images are saved in `src/images/` and committed with the post that uses them.
 - **Footnote** adds a numbered note at the cursor.
 - **Cite** adds a citation from your reference library at the cursor, with an optional page, chapter, section or paragraph. Citations become footnotes in Chicago notes style: the full reference the first time a source is cited, a short form after that. A post that cites anything gets a bibliography at the end. You can add a new source from the Cite box without leaving the post.
+- **Cross-link** (or typing `[[`) links to another post or project. Pick it, then optionally select exact words in it to link to just those; selected text in your post becomes the link text. Readers get a preview card on hover, focus or tap, and clicking opens the linked page over the current one, with Back (or Esc) returning to where they were. Each post lists the posts that link to it under "Linked from".
 - **Annotate** adds an annotation after the paragraph you're in. Choose the Westminster Confession, the Scots Confession or the Bible, find the passage (or search for it), then select the words you're annotating. It only accepts words that appear once in the passage, so annotations can't break the build.
 - Drafts save automatically into `drafts/` on your computer. That folder is never committed, so drafts stay private until you publish.
 - **Publish** checks that the site still builds with the post, then commits it to `main` and pushes it, using your own git login. The site updates about a minute later. The repository must be on `main`.
@@ -99,6 +100,10 @@ An image on its own line becomes a figure, with the text in quotes as its captio
 
 A footnote is `^[The note text.]` straight after the word it belongs to. A citation is `[@key]`, or `[@key, p. 23]` with a page (also `chap.`, `sec.` or `para.`); several sources share one note as `[@calvin1559, p. 23; @smith2020]`. Keys come from `references/library.bib`. A key that isn't in the library stops the build and names the post.
 
+### Cross-links
+
+`[[on-scripture]]` links to the post at `/blog/on-scripture/` (or the project with that file name), using its title as the link text. `[[on-scripture|my earlier post]]` sets the link text, and `[[on-scripture#"exact words"|this point]]` links to those words, which are highlighted when the link is followed. The build stops if the target doesn't exist, is still a draft, or doesn't contain the words exactly once.
+
 ## Annotating a passage
 
 Any post can annotate a phrase from the Westminster Confession, the Scots Confession or the Bible (BSB). Put the annotation on its own lines, straight after the paragraph it belongs to:
@@ -164,6 +169,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/images/` | Images used in posts and projects |
 | `references/` | The reference library (`library.bib`), the Chicago notes citation style and its British English locale (both from the [Citation Style Language](https://citationstyles.org) project, CC BY-SA 3.0) |
 | `lib/references.js`, `lib/markdown.js` | Citations and bibliographies, figures and footnotes |
+| `lib/xref.js`, `src/js/xref.js` | Cross-links and their build checks, and the preview cards and reading overlay |
 | `src/blog/` | Posts, plus the Writing and category pages |
 | `src/projects/` | Projects, plus the Projects page |
 | `src/colophon.njk`, `src/feeds.njk`, `src/404.njk` | Footer pages and the not-found page |

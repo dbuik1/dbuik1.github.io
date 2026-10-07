@@ -210,3 +210,12 @@ select, .details input, .more input, .picker input, .picker textarea {
 .source-meta code { font-size: 0.8125rem; }
 .source-edit { display: grid; gap: 0.5rem; }
 .source-edit textarea { font-family: ui-monospace, monospace; font-size: 0.8125rem; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0.5rem; }
+
+/* Cross-links */
+.editor-xref { color: var(--accent); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 0.2em; cursor: pointer; border-radius: 2px; }
+.editor-xref.to-words { text-decoration-style: solid; }
+.editor-xref.missing { color: var(--error-fg); background: var(--error-bg); }
+.editor-xref:focus-visible, .editor-xref.ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 1px; }
+.xref-step { display: grid; gap: 0.6rem; }
+.xref-step .picker-step .link-button { margin-left: 0.5rem; }
+.note-field input { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0.25rem 0.4rem; }

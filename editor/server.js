@@ -25,6 +25,7 @@ const run = promisify(execFile);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BLOG = path.join(ROOT, "src/blog");
 const PROJECTS = path.join(ROOT, "src/projects");
+const FRAGMENTS = path.join(ROOT, "src/fragments");
 const DRAFTS = path.join(ROOT, "drafts");
 const IMAGES = path.join(ROOT, "src/images");
 const PORT = Number(process.env.PORT) || 8081;
@@ -107,6 +108,36 @@ function withLiveLevel(doc) {
   return { ...doc, liveLevel: matter(readFileSync(postPath(doc.file), "utf8")).data.level ?? null };
 }
 
+// ---- Fragments ----
+
+const fragmentPath = (file) => {
+  if (!POST_FILE.test(file ?? "")) throw new UserError("That fragment file name isn't valid.");
+  return path.join(FRAGMENTS, file);
+};
+
+async function listFragments() {
+  if (!existsSync(FRAGMENTS)) return [];
+  const files = (await readdir(FRAGMENTS)).filter((f) => POST_FILE.test(f)).sort().reverse();
+  return Promise.all(
+    files.map(async (file) => {
+      const { data } = matter(await readFile(path.join(FRAGMENTS, file), "utf8"));
+      return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], kind: data.kind ?? "", draft: !!data.draft };
+    })
+  );
+}
+
+async function openFragment(file) {
+  const id = `fragment-${slugify(file.replace(/\.md$/, ""))}`;
+  const p = draftPath(id);
+  if (existsSync(p)) return JSON.parse(await readFile(p, "utf8"));
+  const { data, content } = matter(await readFile(fragmentPath(file), "utf8"));
+  const [, date, slug] = file.match(POST_FILE);
+  return { id, kind: "fragment", file, meta: { ...data, date, slug }, body: content.replace(/^\n+/, ""), updated: null };
+}
+
+// A fragment's address comes from its first few words, so long lines still get short addresses.
+const fragmentSlug = (text) => slugify(String(text).split(/\s+/).slice(0, 8).join(" ")).slice(0, 60).replace(/-$/, "");
+
 // ---- Projects ----
 
 const PROJECT_FILE = /^([a-z0-9][a-z0-9-]*)\.md$/;
@@ -154,7 +185,7 @@ async function saveDraft({ id, kind, file, meta, body }) {
 
 // ---- Front matter ----
 
-const FIELD_ORDER = ["title", "description", "level", "history", "tags", "project", "series", "status", "summary", "links"];
+const FIELD_ORDER = ["title", "kind", "by", "source", "description", "level", "history", "tags", "project", "series", "status", "summary", "links"];
 const yamlString = (s) => (/^[A-Za-z0-9][\w .,'’()?!-]*$/.test(s) && !/: /.test(s) ? s : JSON.stringify(s));
 
 function frontMatter(meta) {
@@ -221,6 +252,28 @@ function plan({ kind = "post", file, meta, body }) {
       message: `Update ${t.label.charAt(0).toLowerCase()}${t.label.slice(1)}`,
       url: `${site.url}${t.url}`,
       isNew: false,
+    };
+  }
+  if (kind === "fragment") {
+    const problems = [];
+    if (!meta.title?.trim()) problems.push("Write the line itself in the title.");
+    problems.push(...tagTools.problems(meta.tags).map((p) => `Tags: ${p}.`));
+    const slug = fragmentSlug(meta.slug || meta.title || "");
+    if (!slug) problems.push("The line needs at least one letter or number.");
+    if (problems.length) throw new UserError(problems.join(" "));
+    const target = file ?? `${today()}-${slug}.md`;
+    const full = fragmentPath(target);
+    if (!file && existsSync(full)) throw new UserError(`A fragment called ${target} already exists. Change a word or two.`);
+    const { date, slug: _slug, draft, ...fields } = meta;
+    for (const k of ["kind", "by", "source"]) fields[k] = String(fields[k] ?? "").trim();
+    if (draft) fields.draft = true;
+    return {
+      full,
+      content: frontMatter(fields) + body.trim() + "\n",
+      message: `${file ? "Update" : "Add"} fragment “${meta.title.trim()}”`,
+      url: `${site.url}/fragments/${target.match(POST_FILE)[2]}/`,
+      file: target,
+      isNew: !file,
     };
   }
   if (kind === "project") {
@@ -356,7 +409,7 @@ async function saveImage({ name, type, data }) {
 async function usesOf(key) {
   const pattern = new RegExp(`@${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w:.-])`);
   const found = [];
-  for (const dir of [BLOG, PROJECTS]) {
+  for (const dir of [BLOG, PROJECTS, FRAGMENTS].filter((d) => existsSync(d))) {
     for (const f of (await readdir(dir)).filter((x) => x.endsWith(".md"))) {
       if (pattern.test(await readFile(path.join(dir, f), "utf8"))) found.push(path.relative(ROOT, path.join(dir, f)));
     }
@@ -456,6 +509,11 @@ async function meta() {
       title: matter(await readFile(path.join(PROJECTS, f), "utf8")).data.title,
     }))
   );
+  const fragments = existsSync(FRAGMENTS)
+    ? await Promise.all(
+        (await readdir(FRAGMENTS)).filter((f) => f.endsWith(".md")).map(async (f) => matter(await readFile(path.join(FRAGMENTS, f), "utf8")).data)
+      )
+    : [];
   const uniq = (xs) => [...new Set(xs.filter(Boolean))].sort((a, b) => a.localeCompare(b));
   return {
     siteUrl: site.url,
@@ -464,7 +522,8 @@ async function meta() {
     texts: texts.texts,
     stances: annotations.stances,
     projects,
-    tags: uniq(posts.flatMap((p) => tagTools.expand(p.tags ?? []))),
+    tags: uniq([...posts, ...fragments].flatMap((p) => tagTools.expand(p.tags ?? []))),
+    fragmentKinds: uniq(fragments.map((f) => f.kind)),
     series: uniq(posts.map((p) => p.series)),
     outline: annotations.outline(),
   };
@@ -480,7 +539,13 @@ async function readJson(req) {
 
 const routes = {
   "GET /api/meta": () => meta(),
-  "GET /api/list": async () => ({ drafts: await listDrafts(), posts: await listPosts(), projects: await listProjects() }),
+  "GET /api/list": async () => ({
+    drafts: await listDrafts(),
+    posts: await listPosts(),
+    fragments: await listFragments(),
+    projects: await listProjects(),
+  }),
+  "GET /api/fragment": async (_b, q) => openFragment(q.get("file")),
   "GET /api/project": async (_b, q) => openProject(q.get("slug")),
   "GET /api/text": async (_b, q) => openText(q.get("name")),
   "GET /api/draft": async (_b, q) => withLiveLevel(JSON.parse(await readFile(draftPath(q.get("id")), "utf8"))),

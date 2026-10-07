@@ -1,5 +1,5 @@
-// The graph page: every post, project, tag and annotated passage as a dot,
-// with lines for cross-links, tags, project links and annotations.
+// The graph page: every post, fragment, project, tag and annotated passage as a
+// dot, with lines for cross-links, tags, project links and annotations.
 // Drag the background to move, scroll or pinch to zoom, drag a dot to pull it,
 // and select a dot (click, tap or Enter) to open it. Hovering or focusing a dot
 // highlights it and its neighbours. The list under the drawing has the same

@@ -1,0 +1,17 @@
+---
+layout: layouts/page.njk
+title: Fragments
+permalink: /fragments/
+---
+{{ "fragments-intro" | siteText | safe }}
+{%- if collections.fragmentKinds | length %}
+<nav class="filters" aria-label="Kinds of fragment">
+  <a href="/fragments/" aria-current="page">All</a>
+  {%- for k in collections.fragmentKinds %}
+  <a href="{{ k.url }}">{{ k.name }} <span class="count">{{ k.count }}</span></a>
+  {%- endfor %}
+</nav>
+{%- endif %}
+{%- set fragmentList = collections.fragments %}
+{% include "partials/fragment-list.njk" %}
+<p class="subscribe"><a href="/fragments/feed.xml">Subscribe to fragments</a></p>

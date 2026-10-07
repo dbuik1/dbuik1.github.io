@@ -1,0 +1,18 @@
+{#- Expects `fragmentList`. -#}
+{%- if fragmentList | length %}
+<ul class="fragment-list">
+  {%- for f in fragmentList %}
+  <li class="fragment{% if f.data.by or f.data.source %} is-quote{% endif %}">
+    <a class="fragment-line" href="{{ f.url }}">{{ f.data.title }}</a>
+    {%- include "partials/fragment-credit.njk" %}
+    <span class="fragment-meta">
+      {%- if f.data.kind %}{% set k = collections.fragmentKinds | byField("name", f.data.kind) | first %}<a href="{{ k.url }}">{{ f.data.kind }}</a> · {% endif -%}
+      <time datetime="{{ f.date | isoDate }}">{{ f.date | readableDate }}</time>
+      {%- if f.data.draft %} · <span class="draft">Draft</span>{% endif %}
+    </span>
+  </li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="empty">No fragments yet.</p>
+{%- endif %}

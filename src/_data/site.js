@@ -9,6 +9,7 @@ export default {
   nav: [
     { label: "Home", url: "/" },
     { label: "Writing", url: "/blog/" },
+    { label: "Fragments", url: "/fragments/" },
     { label: "Projects", url: "/projects/" },
     { label: "Graph", url: "/graph/" },
     { label: "Search", url: "/search/" },

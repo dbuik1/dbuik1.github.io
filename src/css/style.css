@@ -353,3 +353,23 @@ html.reader-open { overflow: hidden; }
 .graph-list summary { cursor: pointer; font-family: var(--font-label); color: var(--accent); }
 .graph-list h2 { font-size: 1.125rem; }
 @media (prefers-reduced-motion: reduce) { .graph-node text { transition: none; } }
+
+/* Fragments */
+.fragment-list { list-style: none; margin: 0; padding: 0; }
+.fragment-list li { display: grid; gap: 0.2rem; padding: 0.85rem 0; border-bottom: 1px solid var(--rule); }
+.fragment-list li:first-child { border-top: 1px solid var(--rule); }
+.fragment-list .fragment-line { color: var(--fg); text-decoration: none; font-size: 1.125rem; }
+.fragment-list .fragment-line:hover { color: var(--accent); }
+.fragment-list .is-quote .fragment-line::before { content: "“"; }
+.fragment-list .is-quote .fragment-line::after { content: "”"; }
+.fragment-credit { margin: 0; color: var(--muted); }
+.fragment-credit::before { content: "— "; }
+.fragment-credit cite { font-style: italic; }
+.fragment-meta { font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); }
+.fragment-meta a { color: var(--accent); text-decoration: none; }
+.fragment-meta .draft { color: var(--accent); font-weight: 700; }
+.fragment-kicker { font-family: var(--font-label); color: var(--muted); margin: 0; }
+.fragment-kicker a { color: var(--accent); text-decoration: none; }
+.fragment-page .fragment-line { font-size: 1.75rem; line-height: 1.3; margin: 0; }
+.fragment-page .fragment-credit { font-size: 1.0625rem; }
+.fragment-header { display: grid; gap: 0.35rem; }

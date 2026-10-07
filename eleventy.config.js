@@ -9,6 +9,7 @@ import * as texts from "./lib/texts.js";
 import * as xref from "./lib/xref.js";
 import * as tags from "./lib/tags.js";
 import * as graph from "./lib/graph.js";
+import * as fragments from "./lib/fragments.js";
 import { isPreview } from "./lib/preview.js";
 import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
@@ -45,6 +46,16 @@ const allProjects = (api) => {
   const projects = api.getFilteredByGlob(projectsGlob);
   projects.forEach(checkProject);
   return projects.sort((a, b) => a.data.title.localeCompare(b.data.title));
+};
+
+const fragmentsGlob = "src/fragments/*.md";
+const allFragments = (api) => {
+  const items = api.getFilteredByGlob(fragmentsGlob);
+  for (const item of items) {
+    const problems = fragments.problems(item.data);
+    if (problems.length) throw new Error(`Fragment ${item.inputPath}: ${problems.join("; ")}`);
+  }
+  return items.reverse();
 };
 
 const postsGlob = "src/blog/*.md";
@@ -115,10 +126,12 @@ export default function (eleventyConfig) {
     return posts;
   });
   eleventyConfig.addCollection("projects", allProjects);
-  // slug → posts that link to it with [[slug]], newest first.
+  eleventyConfig.addCollection("fragments", allFragments);
+  eleventyConfig.addCollection("fragmentKinds", (api) => fragments.kinds(allFragments(api)));
+  // slug → posts, projects and fragments that link to it with [[slug]], newest first.
   eleventyConfig.addCollection("backlinks", (api) => {
     const map = {};
-    for (const post of allPosts(api)) {
+    for (const post of [...allPosts(api), ...allProjects(api), ...allFragments(api)]) {
       for (const slug of new Set(xref.linksIn(readFileSync(post.inputPath, "utf8")))) (map[slug] ??= []).push(post);
     }
     return map;
@@ -126,7 +139,7 @@ export default function (eleventyConfig) {
   for (const slug of levelSlugs) {
     eleventyConfig.addCollection(`level-${slug}`, (api) => allPosts(api).filter((p) => p.data.level === slug));
   }
-  eleventyConfig.addCollection("tagList", (api) => tags.list(allPosts(api)));
+  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allFragments(api)]));
 
   // {% annotate "wcf 1.4", "exact phrase", "qualified" %}Your note{% endannotate %}
   eleventyConfig.addPairedShortcode("annotate", function (note, ref, phrase, stance) {
@@ -141,7 +154,13 @@ export default function (eleventyConfig) {
   });
   eleventyConfig.addCollection("annotations", (api) => annotations.collect(allPosts(api)));
   eleventyConfig.addCollection("graph", (api) =>
-    graph.build({ posts: allPosts(api), projects: allProjects(api), passages: annotations.collect(allPosts(api)), levels })
+    graph.build({
+      posts: allPosts(api),
+      projects: allProjects(api),
+      fragments: allFragments(api),
+      passages: annotations.collect(allPosts(api)),
+      levels,
+    })
   );
   eleventyConfig.addGlobalData("stances", annotations.stances);
   eleventyConfig.addFilter("stanceName", annotations.stanceName);
@@ -156,6 +175,14 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("byField", (array, field, value) => array.filter((item) => item[field] === value));
   eleventyConfig.addFilter("withTag", tags.withTag);
   eleventyConfig.addFilter("tagUrl", tags.url);
+  eleventyConfig.addFilter("byKind", (items, kind) => items.filter((f) => f.data.kind === kind));
+  eleventyConfig.addFilter("fragmentSource", function (text) {
+    try {
+      return fragments.source(text);
+    } catch (e) {
+      throw new Error(`Fragment ${this.page?.inputPath ?? ""}: ${e.message}`);
+    }
+  });
   eleventyConfig.addFilter("linkedTo", (links, id) =>
     links.filter((l) => l.source === id || l.target === id).map((l) => (l.source === id ? l.target : l.source))
   );
@@ -179,6 +206,12 @@ export default function (eleventyConfig) {
     outputPath: "/feed.xml",
     collection: { name: "posts", limit: 20 },
     metadata: feedMeta("All writing"),
+  });
+  eleventyConfig.addPlugin(feedPlugin, {
+    type: "atom",
+    outputPath: "/fragments/feed.xml",
+    collection: { name: "fragments", limit: 50 },
+    metadata: { ...feedMeta("Fragments"), title: `${site.title}: Fragments` },
   });
   for (const l of levels) {
     eleventyConfig.addPlugin(feedPlugin, {

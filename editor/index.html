@@ -22,6 +22,26 @@
         <button type="button" class="link-button" id="go-site">Site text and projects</button>
         <button type="button" class="link-button" id="go-references">Reference library</button>
       </nav>
+      <form class="quick-form" id="fragment-form">
+        <label for="fragment-line">Add a fragment</label>
+        <div class="quick-row">
+          <input id="fragment-line" class="quick-line" placeholder="A thought or quote in one line" autocomplete="off" required>
+          <input id="fragment-kind" list="kind-options" placeholder="Kind, e.g. quote" aria-label="Kind" autocomplete="off">
+          <input id="fragment-tags" list="tag-options" placeholder="Tags, separated by commas" aria-label="Tags, separated by commas" autocomplete="off">
+        </div>
+        <details class="quick-more">
+          <summary>Who said it</summary>
+          <div class="quick-row">
+            <input id="fragment-by" placeholder="Name" aria-label="Who said it" autocomplete="off">
+            <input id="fragment-source" placeholder="Where, or a citation like [@key, p. 4]" aria-label="Source" autocomplete="off">
+          </div>
+        </details>
+        <div class="quick-actions">
+          <button type="submit" class="secondary" id="fragment-publish">Publish fragment</button>
+          <span class="hint">Goes live straight away. Open it under Fragments to add a comment.</span>
+        </div>
+        <p class="quick-state" id="fragment-state" role="status" hidden></p>
+      </form>
       <section class="home-section">
         <h2>Drafts</h2>
         <p class="lede">Saved only on this computer until you publish.</p>
@@ -30,6 +50,10 @@
       <section class="home-section">
         <h2>Published</h2>
         <ul class="doc-list" id="post-list"></ul>
+      </section>
+      <section class="home-section">
+        <h2>Fragments</h2>
+        <ul class="doc-list" id="fragment-list"></ul>
       </section>
     </main>
 
@@ -91,14 +115,20 @@
 
       <div class="callout" id="callout" role="status" hidden></div>
 
-      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off" data-kinds="post project">
+      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off" data-kinds="post project fragment">
       <div data-kinds="text inline">
         <h1 class="text-label" id="text-label"></h1>
         <p class="lede" id="text-where"></p>
       </div>
 
-      <div class="details" data-kinds="post">
-        <label>Research level <select id="level"></select></label>
+      <div class="details" data-kinds="fragment">
+        <label>Kind <input id="kind" list="kind-options" placeholder="e.g. quote" autocomplete="off"></label>
+        <label>Who said it <input id="by" autocomplete="off"></label>
+        <label class="grow">Source <input id="source" placeholder="Where, or a citation like [@key, p. 4]" autocomplete="off"></label>
+        <datalist id="kind-options"></datalist>
+      </div>
+      <div class="details" data-kinds="post fragment">
+        <label data-kinds="post">Research level <select id="level"></select></label>
         <div class="tags-field">
           <span class="tags-label" id="tags-label">Tags</span>
           <ul class="tag-chips" id="tag-chips" aria-labelledby="tags-label"></ul>
@@ -129,7 +159,7 @@
 
       <input id="inline-text" class="inline-text" aria-labelledby="text-label" autocomplete="off" data-kinds="inline">
 
-      <div class="toolbar" role="toolbar" aria-label="Formatting" data-kinds="post project text">
+      <div class="toolbar" role="toolbar" aria-label="Formatting" data-kinds="post project text fragment">
         <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
         <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
         <button type="button" data-cmd="h2" title="Heading">Heading</button>
@@ -150,8 +180,8 @@
         </details>
         <span class="toolbar-gap"></span>
         <button type="button" data-cmd="image" class="insert-button" title="Insert an image">Image</button>
-        <button type="button" data-cmd="footnote" class="insert-button" title="Add a footnote at the cursor" data-kinds="post project">Footnote</button>
-        <button type="button" data-cmd="cite" class="insert-button" title="Cite a source from your library" data-kinds="post project">Cite</button>
+        <button type="button" data-cmd="footnote" class="insert-button" title="Add a footnote at the cursor" data-kinds="post project fragment">Footnote</button>
+        <button type="button" data-cmd="cite" class="insert-button" title="Cite a source from your library" data-kinds="post project fragment">Cite</button>
         <button type="button" data-cmd="annotate" class="insert-button" title="Annotate a confession or Bible passage" data-kinds="post">Annotate</button>
         <button type="button" data-cmd="source" class="source-toggle" aria-pressed="false" title="Edit the post as plain Markdown and HTML">Source</button>
         <div class="table-tools" id="table-tools" role="group" aria-label="Table" hidden>
@@ -164,7 +194,7 @@
         </div>
       </div>
 
-      <div id="content" class="post-body" data-kinds="post project text"></div>
+      <div id="content" class="post-body" data-kinds="post project text fragment"></div>
       <textarea id="source" class="source-text" aria-label="Source: Markdown and HTML" spellcheck="true" hidden></textarea>
     </main>
   </div>

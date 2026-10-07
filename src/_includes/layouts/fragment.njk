@@ -1,0 +1,34 @@
+---
+layout: layouts/base.njk
+---
+{%- set f = { url: page.url, date: page.date, fileSlug: page.fileSlug, data: { title: title, kind: kind, by: by, source: source, draft: draft } } %}
+<article class="post fragment-page" data-pagefind-body>
+  <header class="fragment-header">
+    {%- set kindInfo = collections.fragmentKinds | byField("name", kind) | first %}
+    <p class="fragment-kicker"><a href="/fragments/">Fragments</a>{% if kindInfo %} · <a href="{{ kindInfo.url }}">{{ kind }}</a>{% endif %}</p>
+    <h1 class="fragment-line">{{ title }}</h1>
+    {%- include "partials/fragment-credit.njk" %}
+    <span class="post-meta"><time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time>{% if draft %}<span class="draft">Draft</span>{% endif %}</span>
+  </header>
+  {%- if content | striptags | trim %}
+  <div class="post-body">
+    {{ content | safe }}
+  </div>
+  {%- endif %}
+
+  {%- set linkers = collections.backlinks[page.fileSlug] %}
+  {%- if linkers and linkers | length %}
+  <section class="backlinks" aria-labelledby="backlinks-heading">
+    <h2 id="backlinks-heading">Linked from</h2>
+    <ul>
+      {%- for p in linkers %}<li><a class="xref" data-xref="{{ p.fileSlug }}" href="{{ p.url }}">{{ p.data.title }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
+  {%- if tags and tags | length %}
+  <p class="post-tags">Tags:
+    {%- for tag in tags %} <a href="{{ tag | tagUrl }}">{{ tag | replace("/", " / ") }}</a>{% if not loop.last %},{% endif %}{% endfor %}
+  </p>
+  {%- endif %}
+</article>

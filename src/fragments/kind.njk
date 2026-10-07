@@ -1,0 +1,18 @@
+---
+layout: layouts/page.njk
+pagination:
+  data: collections.fragmentKinds
+  size: 1
+  alias: kind
+permalink: "{{ kind.url }}"
+eleventyComputed:
+  title: "Fragments: {{ kind.name }}"
+---
+<nav class="filters" aria-label="Kinds of fragment">
+  <a href="/fragments/">All</a>
+  {%- for k in collections.fragmentKinds %}
+  <a href="{{ k.url }}"{% if k.name == kind.name %} aria-current="page"{% endif %}>{{ k.name }} <span class="count">{{ k.count }}</span></a>
+  {%- endfor %}
+</nav>
+{%- set fragmentList = collections.fragments | byKind(kind.name) %}
+{% include "partials/fragment-list.njk" %}

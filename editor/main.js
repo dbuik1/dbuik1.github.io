@@ -91,6 +91,9 @@ const fields = {
   status: $("status"),
   summary: $("summary"),
   inline: $("inline-text"),
+  kind: $("kind"),
+  by: $("by"),
+  source: $("source"),
 };
 let tags = [];
 let links = [];
@@ -100,6 +103,7 @@ fields.level.append(option("", "Choose…"), ...meta.levels.map((l) => option(l.
 fields.project.append(...meta.projects.map((p) => option(p.slug, p.title || p.slug)));
 fields.status.append(option("", "Choose…"), ...meta.statuses.map((x) => option(x.slug, x.name)));
 $("tag-options").append(...meta.tags.map((t) => option(t, t)));
+$("kind-options").append(...meta.fragmentKinds.map((k) => option(k, k)));
 $("series-options").append(...meta.series.map((s) => option(s, s)));
 
 const slugify = (s) =>
@@ -196,7 +200,7 @@ function levelHint() {
   hint.hidden = !text;
 }
 fields.level.addEventListener("change", levelHint);
-for (const el of [fields.level, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline]) {
+for (const el of [fields.kind, fields.by, fields.source, fields.level, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline]) {
   el.addEventListener("input", changed);
 }
 
@@ -209,6 +213,20 @@ function collect() {
   if (kind === "text") {
     const inline = textInfo(doc.file)?.inline;
     return { ...base, meta: {}, body: inline ? fields.inline.value.trim() : body() };
+  }
+  if (kind === "fragment") {
+    return {
+      ...base,
+      meta: {
+        ...(doc?.meta ?? {}),
+        title: fields.title.value.trim(),
+        kind: fields.kind.value.trim(),
+        by: fields.by.value.trim(),
+        source: fields.source.value.trim(),
+        tags: [...tags],
+      },
+      body: body(),
+    };
   }
   const slug = fields.slug.value.trim() || slugify(fields.title.value);
   if (kind === "project") {
@@ -255,6 +273,10 @@ const PUBLISH = {
     new: ["Publish project", "Checks the page, then pushes it live with any new images and sources."],
     live: ["Update live project", "Checks the page, then pushes the changes live with any new images and sources."],
   },
+  fragment: {
+    new: ["Publish fragment", "Checks the fragment, then pushes it live."],
+    live: ["Update live fragment", "Checks the fragment, then pushes the changes live."],
+  },
   text: { live: ["Update live text", "Checks the site, then pushes this text live with any new images and sources."] },
 };
 
@@ -270,12 +292,16 @@ function fill(d) {
     fields.inline.value = info.inline ? d.body ?? "" : "";
     fields.inline.placeholder = info.placeholder;
   }
+  fields.kind.value = m.kind ?? "";
+  fields.by.value = m.by ?? "";
+  fields.source.value = m.source ?? "";
   fields.status.value = m.status ?? "";
   fields.summary.value = m.summary ?? "";
   links = Array.isArray(m.links) ? m.links.map((l) => ({ ...l })) : [];
   renderLinks();
   $("slug-prefix").textContent = kind === "project" ? "/projects/" : "/blog/";
   fields.title.value = m.title ?? "";
+  fields.title.placeholder = kind === "fragment" ? "The line itself" : "Title";
   fields.level.value = m.level ?? "";
   levelHint();
   fields.description.value = m.description ?? "";
@@ -367,7 +393,7 @@ $("publish").addEventListener("click", async () => {
     const kind = kindOf(doc);
     const title = kind === "text" ? textInfo(doc.file).label : fields.title.value.trim();
     const wasLive = !!doc?.file;
-    const back = kind === "post" ? { label: "Back to all posts", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
+    const back = ["post", "fragment"].includes(kind) ? { label: "Back to the start", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
     const open = { label: kind === "post" ? "Open the post" : "Open the page", href: result.url };
     doc = null;
     if (result.unchanged) {
@@ -572,14 +598,14 @@ function showView(id) {
   for (const v of VIEWS) $(v).hidden = v !== id;
   window.scrollTo(0, 0);
 }
-const KIND_NOTE = { project: "Project · ", text: "Site text · " };
+const KIND_NOTE = { project: "Project · ", text: "Site text · ", fragment: "Fragment · " };
 
 async function showHome() {
   await saveDraft();
   doc = null;
   showView("home");
   history.replaceState(null, "", "/");
-  const { drafts, posts } = await api("GET", "/api/list");
+  const { drafts, posts, fragments } = await api("GET", "/api/list");
 
   const draftList = $("draft-list");
   draftList.replaceChildren(
@@ -615,7 +641,64 @@ async function showHome() {
     })
   );
   if (!posts.length) postList.innerHTML = '<li class="muted">Nothing published yet.</li>';
+
+  const fragmentList = $("fragment-list");
+  fragmentList.replaceChildren(
+    ...fragments.map((f) => {
+      const li = document.createElement("li");
+      const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: f.title });
+      open.addEventListener("click", () => openFragment(f.file));
+      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: [f.date, f.kind, f.draft && "hidden draft"].filter(Boolean).join(" · ") }));
+      return li;
+    })
+  );
+  if (!fragments.length) fragmentList.innerHTML = '<li class="muted">No fragments yet. Add one above.</li>';
 }
+
+// ---- Fragments: one line, published straight from the home screen ----
+$("fragment-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = $("fragment-line").value.trim();
+  if (!title) return;
+  const button = $("fragment-publish");
+  const state = $("fragment-state");
+  const label = button.textContent;
+  button.disabled = true;
+  button.textContent = "Checking…";
+  state.hidden = true;
+  try {
+    const result = await api("POST", "/api/publish", {
+      kind: "fragment",
+      file: null,
+      meta: {
+        title,
+        kind: $("fragment-kind").value.trim(),
+        by: $("fragment-by").value.trim(),
+        source: $("fragment-source").value.trim(),
+        tags: [...new Set($("fragment-tags").value.split(",").map((t) => t.trim()).filter(Boolean))],
+      },
+      body: "",
+    });
+    state.className = `quick-state ${result.pushed ? "ok" : "warn"}`;
+    state.replaceChildren(
+      result.pushed
+        ? "Published. It will be live in about a minute. "
+        : `Committed on this computer but couldn't be pushed, so it isn't live yet. Run git push in the site folder.\n${result.pushError ?? ""} `,
+      Object.assign(document.createElement("a"), { href: result.url, target: "_blank", rel: "noopener", textContent: "Open it" })
+    );
+    for (const id of ["fragment-line", "fragment-by", "fragment-source"]) $(id).value = "";
+    $("fragment-form").querySelector(".quick-more").open = false;
+    await showHome();
+  } catch (err) {
+    state.className = "quick-state error";
+    state.textContent = err.message;
+  } finally {
+    state.hidden = false;
+    button.disabled = false;
+    button.textContent = label;
+    $("fragment-line").focus();
+  }
+});
 
 async function showSite() {
   await saveDraft();
@@ -655,7 +738,7 @@ async function showReferences() {
 // Back returns to wherever this kind of document is listed.
 let backTo = showHome;
 function showWrite(d) {
-  backTo = kindOf(d) === "post" ? showHome : showSite;
+  backTo = ["post", "fragment"].includes(kindOf(d)) ? showHome : showSite;
   showView("write");
   $("write").classList.remove("done");
   fields.title.readOnly = false;
@@ -679,6 +762,9 @@ async function openDraft(id) {
 }
 async function openPost(file) {
   showWrite(await api("GET", `/api/post?file=${encodeURIComponent(file)}`));
+}
+async function openFragment(file) {
+  showWrite(await api("GET", `/api/fragment?file=${encodeURIComponent(file)}`));
 }
 async function openProject(slug) {
   showWrite(await api("GET", `/api/project?slug=${encodeURIComponent(slug)}`));

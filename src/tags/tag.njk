@@ -18,5 +18,12 @@ eleventyComputed:
 </nav>
 {%- endif %}
 {%- set postList = collections.posts | withTag(tag.name) %}
+{%- set fragmentList = collections.fragments | withTag(tag.name) %}
+{%- if postList | length or not fragmentList | length %}
 {% include "partials/post-list.njk" %}
+{%- endif %}
+{%- if fragmentList | length %}
+<h2>Fragments</h2>
+{% include "partials/fragment-list.njk" %}
+{%- endif %}
 <p><a href="/tags/">All tags</a></p>

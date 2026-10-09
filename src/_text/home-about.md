@@ -1,0 +1,1 @@
+I'm a Christian undergraduate physics student who enjoys thinking about all kinds of things. I like to think that my own "two cents" could sometimes be worth a lot more than two cents. My writing, and much of my life indeed, is heavily based on drawing connections – I think that my particular background allows me to draw some rather interesting ones.

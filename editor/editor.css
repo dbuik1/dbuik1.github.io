@@ -27,6 +27,8 @@ button { font: inherit; }
 .doc-link { background: none; border: 0; padding: 0; color: var(--fg); font-size: 1.0625rem; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 0.2em; }
 .doc-link:hover { text-decoration-color: var(--accent); }
 .doc-list .muted { font-size: 0.875rem; font-family: var(--font-label); }
+.doc-list .text-now { flex-basis: 100%; font-size: 0.9375rem; color: var(--fg); }
+.doc-list .text-now.is-empty { color: var(--muted); font-style: italic; }
 
 /* Writing */
 .write-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; font-family: var(--font-label); }
@@ -41,6 +43,18 @@ button { font: inherit; }
 .callout-error { background: var(--error-bg); color: var(--error-fg); }
 .callout-actions { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-top: 0.5rem !important; }
 .callout-actions a, .callout-actions .link-button { color: inherit; font-weight: 500; text-decoration: underline; }
+.sync-note { margin-bottom: 1rem; }
+
+/* What's live: one muted line, or a warning band when there are unpublished changes */
+.live-state { font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); }
+.live-state p { margin: 0; }
+.live-state.has-draft { background: var(--warn-bg); color: var(--warn-fg); border-radius: 6px; padding: 0.75rem 1rem; font-size: 1rem; }
+.live-actions { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin-top: 0.35rem !important; }
+.live-actions:empty { display: none; }
+.live-actions a, .live-actions .link-button { color: inherit; font-weight: 500; text-decoration: underline; }
+.live-version { margin-top: 0.75rem; padding: 0.75rem 1rem; border-left: 3px solid var(--rule); background: var(--bg); color: var(--fg); border-radius: 0 6px 6px 0; }
+.live-version-title { font-weight: 500; margin-bottom: 0.4rem !important; }
+.live-version-body { white-space: pre-wrap; font-family: var(--font-body); font-size: 0.9375rem; max-height: 22rem; overflow: auto; }
 
 .title-input {
   font: inherit; font-family: var(--font-display); font-size: 2rem; font-weight: 500;

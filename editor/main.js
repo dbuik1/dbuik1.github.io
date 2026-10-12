@@ -209,7 +209,7 @@ const textInfo = (name) => meta.texts.find((t) => t.name === name);
 
 function collect() {
   const kind = kindOf(doc);
-  const base = { id: doc?.id, kind, file: doc?.file ?? null };
+  const base = { id: doc?.id, kind, file: doc?.file ?? null, base: doc?.base ?? null };
   if (kind === "text") {
     const inline = textInfo(doc.file)?.inline;
     return { ...base, meta: {}, body: inline ? fields.inline.value.trim() : body() };
@@ -324,7 +324,84 @@ function fill(d) {
     showCallout("warn", "This is open as source because the rich-text view would change some of its formatting. Edit it here as Markdown and HTML.");
   }
   dirty = false;
-  setSaveState(d.updated ? `Draft saved ${time(d.updated)}` : d.file ? "Editing the live version. Changes stay private until you update it." : "");
+  setSaveState(d.updated ? `Draft saved ${time(d.updated)}` : "");
+  showLive(d);
+}
+
+// ---- What's live ----
+// Opening something already on the site shows what the site has now; a saved
+// draft of changes to it says so, and can be compared with the live version
+// or thrown away.
+function liveUrl(d) {
+  const kind = kindOf(d);
+  if (kind === "text") return meta.siteUrl + textInfo(d.file).url;
+  if (kind === "project") return `${meta.siteUrl}/projects/${d.file}/`;
+  const slug = d.file.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.md$/, "");
+  return `${meta.siteUrl}/${kind === "fragment" ? "fragments" : "blog"}/${slug}/`;
+}
+
+const REOPEN = { post: (d) => openPost(d.file), fragment: (d) => openFragment(d.file), project: (d) => openProject(d.file), text: (d) => openText(d.file) };
+
+function showLive(d) {
+  const box = $("live-state");
+  const live = d.live;
+  box.hidden = !live;
+  $("live-version").hidden = true;
+  if (!live) return;
+  const kind = kindOf(d);
+  const update = `“${PUBLISH[kind].live[0]}”`;
+  const drafted = !!d.updated;
+  box.classList.toggle("has-draft", drafted);
+
+  let line;
+  if (drafted) {
+    const when = new Date(d.updated).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    line = `These are your unpublished changes from ${when}. The site still shows the earlier version until you press ${update}, which replaces it.`;
+    if (d.liveMoved) line += " The site's version has also changed since you started, so updating would overwrite that newer text. Check it first.";
+  } else if (kind === "text" && !live.body) {
+    line = `This is empty on the site, so the site shows the grey placeholder. What you write here replaces it when you press ${update}.`;
+  } else {
+    line = `This is what's on the site now. Your edits stay on this computer until you press ${update}, which replaces it.`;
+  }
+  $("live-line").textContent = line;
+
+  const actions = $("live-actions");
+  actions.replaceChildren();
+  const add = (el) => actions.append(el);
+  if (drafted) {
+    const show = Object.assign(document.createElement("button"), { type: "button", className: "link-button" });
+    const setShown = (on) => {
+      $("live-version").hidden = !on;
+      show.textContent = on ? "Hide what's live" : "Show what's live";
+      show.setAttribute("aria-expanded", String(on));
+    };
+    show.setAttribute("aria-controls", "live-version");
+    show.addEventListener("click", () => setShown($("live-version").hidden));
+    setShown(!!d.liveMoved);
+    add(show);
+    const discard = Object.assign(document.createElement("button"), { type: "button", className: "link-button", textContent: "Discard my changes" });
+    discard.addEventListener("click", async () => {
+      if (!confirm("Throw away your unpublished changes and go back to what's on the site? This can't be undone.")) return;
+      clearTimeout(saveTimer);
+      dirty = false;
+      await api("POST", "/api/draft/delete", { id: d.id });
+      await REOPEN[kind](d);
+    });
+    add(discard);
+  }
+  add(Object.assign(document.createElement("a"), { href: liveUrl(d), target: "_blank", rel: "noopener", textContent: "Open it on the site" }));
+
+  $("live-version-title").textContent = kind === "text" ? "On the site now" : `On the site now: ${live.title ?? ""}`;
+  $("live-version-body").textContent = live.body || (kind === "text" ? "Empty. The site shows the grey placeholder." : "Nothing below the title.");
+}
+
+// Shown on every screen: the latest version couldn't be fetched, or the editor itself changed.
+function showSync(sync) {
+  const notes = [];
+  if (sync?.editorChanged) notes.push("The editor itself was updated on GitHub. To use the new version, stop it with Ctrl+C in its window and run npm run write again.");
+  if (sync?.error) notes.push(sync.error);
+  $("sync-note").textContent = notes.join("\n\n");
+  $("sync-note").hidden = !notes.length;
 }
 
 const time = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -383,6 +460,7 @@ const hideCallout = () => ($("callout").hidden = true);
 // ---- Publishing ----
 $("publish").addEventListener("click", async () => {
   const button = $("publish");
+  if (doc?.liveMoved && !confirm("The version on the site changed after you started these changes. Publishing replaces it with yours. Publish anyway?")) return;
   button.disabled = true;
   const label = button.textContent;
   button.textContent = "Checking…";
@@ -412,6 +490,7 @@ $("publish").addEventListener("click", async () => {
       );
     }
     setSaveState("");
+    $("live-state").hidden = true;
     // The post is done; leave it readable but not editable until reopened.
     $("write").classList.add("done");
     fields.title.readOnly = true;
@@ -605,7 +684,8 @@ async function showHome() {
   doc = null;
   showView("home");
   history.replaceState(null, "", "/");
-  const { drafts, posts, fragments } = await api("GET", "/api/list");
+  const { drafts, posts, fragments, sync } = await api("GET", "/api/list");
+  showSync(sync);
 
   const draftList = $("draft-list");
   draftList.replaceChildren(
@@ -704,13 +784,27 @@ async function showSite() {
   await saveDraft();
   doc = null;
   showView("site");
-  const { projects } = await api("GET", "/api/list");
+  const { projects, texts, sync } = await api("GET", "/api/list");
+  showSync(sync);
+  const current = new Map(texts.map((t) => [t.name, t]));
   $("text-list").replaceChildren(
     ...meta.texts.map((t) => {
       const li = document.createElement("li");
       const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: t.label });
       open.addEventListener("click", () => openText(t.name));
-      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: t.url.replace(/#.*/, "") }));
+      const now = current.get(t.name);
+      const where = t.url.replace(/#.*/, "");
+      li.append(
+        open,
+        Object.assign(document.createElement("span"), {
+          className: "muted",
+          textContent: [where, now?.draft && "unpublished changes"].filter(Boolean).join(" · "),
+        }),
+        Object.assign(document.createElement("span"), {
+          className: `text-now${now?.preview ? "" : " is-empty"}`,
+          textContent: now?.preview ? `“${now.preview}”` : "Empty, so the site shows a placeholder",
+        })
+      );
       return li;
     })
   );

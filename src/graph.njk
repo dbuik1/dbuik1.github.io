@@ -1,7 +1,7 @@
 ---
 layout: layouts/page.njk
 title: Graph
-description: Every post, note, project, tag and annotated passage, and how they connect.
+description: Every post, note, project, visual, tag and annotated passage, and how they connect.
 permalink: /graph/
 ---
 {#- The drawing needs JavaScript; the list below it works without and for screen readers. -#}
@@ -10,6 +10,7 @@ permalink: /graph/
     <fieldset class="graph-filters">
       <legend class="visually-hidden">Show</legend>
       <label><input type="checkbox" data-kind="note" checked> <span class="graph-key key-note"></span>Notes</label>
+      <label><input type="checkbox" data-kind="visual" checked> <span class="graph-key key-visual"></span>Visuals</label>
       <label><input type="checkbox" data-kind="project" checked> <span class="graph-key key-project"></span>Projects</label>
       <label><input type="checkbox" data-kind="tag" checked> <span class="graph-key key-tag"></span>Tags</label>
       <label><input type="checkbox" data-kind="passage" checked> <span class="graph-key key-passage"></span>Passages</label>
@@ -27,7 +28,7 @@ permalink: /graph/
 {%- set g = collections.graph %}
 <details class="graph-list" id="graph-list" open>
   <summary>Everything as a list</summary>
-  {%- set kinds = [["post", "Posts"], ["note", "Notes"], ["project", "Projects"], ["tag", "Tags"], ["passage", "Annotated passages"]] %}
+  {%- set kinds = [["post", "Posts"], ["note", "Notes"], ["visual", "Visuals"], ["project", "Projects"], ["tag", "Tags"], ["passage", "Annotated passages"]] %}
   {%- for k in kinds %}
   {%- set group = g.nodes | byField("kind", k[0]) %}
   {%- if group | length %}

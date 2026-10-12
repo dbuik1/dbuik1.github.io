@@ -11,6 +11,7 @@ import { Xref, initXref, loadTargets, openXref } from "./xref.js";
 import { TableKit } from "@tiptap/extension-table";
 import MarkdownIt from "markdown-it";
 import { HtmlBlock, HtmlInline, Sup, Sub, initHtml, newHtmlBlock } from "./html.js";
+import { VisualEmbed, initVisualPicker, openVisualPicker, setVisuals } from "./visual.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -31,6 +32,8 @@ initDialogs(api);
 initLibrary(api);
 initXref(api);
 initHtml();
+initVisualPicker();
+setVisuals(meta.visuals);
 await Promise.all([loadLibrary().catch(() => {}), loadTargets().catch(() => {})]);
 
 // ---- Passage lookups, cached for the annotation cards ----
@@ -61,6 +64,7 @@ const editor = new Editor({
     Footnote.configure({ onEdit: (attrs, update) => openFootnote(attrs, update) }),
     Citation.configure({ onEdit: (attrs, update) => openCite(attrs, update), label: citationLabel }),
     Xref.configure({ onEdit: (attrs, update) => openXref(attrs, update, true), onTrigger: () => crossLink() }),
+    VisualEmbed.configure({ onEdit: (attrs, update) => openVisualPicker(attrs, update) }),
     HtmlBlock,
     HtmlInline,
     Sup,
@@ -93,14 +97,18 @@ const fields = {
   inline: $("inline-text"),
   kind: $("kind"),
   by: $("by"),
-  source: $("source"),
+  source: $("credit-source"),
+  postVisual: $("post-visual"),
+  visualDescription: $("visual-description"),
 };
+let visualHtml = "";
 let tags = [];
 let links = [];
 
 const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
 fields.level.append(option("", "Choose…"), ...meta.levels.map((l) => option(l.slug, l.name)));
 fields.project.append(...meta.projects.map((p) => option(p.slug, p.title || p.slug)));
+fields.postVisual.append(...meta.visuals.map((v) => option(v.slug, v.title || v.slug)));
 fields.status.append(option("", "Choose…"), ...meta.statuses.map((x) => option(x.slug, x.name)));
 $("tag-options").append(...meta.tags.map((t) => option(t, t)));
 $("kind-options").append(...meta.noteKinds.map((k) => option(k, k)));
@@ -200,7 +208,7 @@ function levelHint() {
   hint.hidden = !text;
 }
 fields.level.addEventListener("change", levelHint);
-for (const el of [fields.kind, fields.by, fields.source, fields.level, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline]) {
+for (const el of [fields.kind, fields.by, fields.source, fields.level, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline, fields.postVisual, fields.visualDescription]) {
   el.addEventListener("input", changed);
 }
 
@@ -229,6 +237,20 @@ function collect() {
     };
   }
   const slug = fields.slug.value.trim() || slugify(fields.title.value);
+  if (kind === "visual") {
+    return {
+      ...base,
+      meta: {
+        ...(doc?.meta ?? {}),
+        title: fields.title.value.trim(),
+        description: fields.visualDescription.value.trim(),
+        tags: [...tags],
+        html: visualHtml,
+        slug,
+      },
+      body: body(),
+    };
+  }
   if (kind === "project") {
     return {
       ...base,
@@ -251,6 +273,7 @@ function collect() {
     description: fields.description.value.trim(),
     project: fields.project.value,
     series: fields.series.value.trim(),
+    visual: fields.postVisual.value,
     slug,
   };
   return { ...base, meta: m, body: body() };
@@ -272,6 +295,10 @@ const PUBLISH = {
   project: {
     new: ["Publish project", "Checks the page, then pushes it live with any new images and sources."],
     live: ["Update live project", "Checks the page, then pushes the changes live with any new images and sources."],
+  },
+  visual: {
+    new: ["Publish visual", "Checks the visual and takes its still image, then pushes it live."],
+    live: ["Update live visual", "Checks the visual and takes a new still image, then pushes the changes live."],
   },
   note: {
     new: ["Publish note", "Checks the note, then pushes it live."],
@@ -299,12 +326,15 @@ function fill(d) {
   fields.summary.value = m.summary ?? "";
   links = Array.isArray(m.links) ? m.links.map((l) => ({ ...l })) : [];
   renderLinks();
-  $("slug-prefix").textContent = kind === "project" ? "/projects/" : "/blog/";
+  $("slug-prefix").textContent = { project: "/projects/", visual: "/visuals/" }[kind] ?? "/blog/";
+  fields.postVisual.value = m.visual ?? "";
+  fields.visualDescription.value = kind === "visual" ? m.description ?? "" : "";
+  setVisualHtml(kind === "visual" ? m.html ?? "" : "");
   fields.title.value = m.title ?? "";
   fields.title.placeholder = kind === "note" ? "The note in one line" : "Title";
   fields.level.value = m.level ?? "";
   levelHint();
-  fields.description.value = m.description ?? "";
+  fields.description.value = kind === "post" ? m.description ?? "" : "";
   fields.project.value = m.project ?? "";
   fields.series.value = m.series ?? "";
   fields.slug.value = m.slug ?? slugify(m.title ?? "");
@@ -336,11 +366,18 @@ function liveUrl(d) {
   const kind = kindOf(d);
   if (kind === "text") return meta.siteUrl + textInfo(d.file).url;
   if (kind === "project") return `${meta.siteUrl}/projects/${d.file}/`;
+  if (kind === "visual") return `${meta.siteUrl}/visuals/${d.file}/`;
   const slug = d.file.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.md$/, "");
   return `${meta.siteUrl}/${kind === "note" ? "notes" : "blog"}/${slug}/`;
 }
 
-const REOPEN = { post: (d) => openPost(d.file), note: (d) => openNote(d.file), project: (d) => openProject(d.file), text: (d) => openText(d.file) };
+const REOPEN = {
+  post: (d) => openPost(d.file),
+  note: (d) => openNote(d.file),
+  project: (d) => openProject(d.file),
+  text: (d) => openText(d.file),
+  visual: (d) => openVisual(d.file),
+};
 
 function showLive(d) {
   const box = $("live-state");
@@ -471,13 +508,18 @@ $("publish").addEventListener("click", async () => {
     const kind = kindOf(doc);
     const title = kind === "text" ? textInfo(doc.file).label : fields.title.value.trim();
     const wasLive = !!doc?.file;
-    const back = ["post", "note"].includes(kind) ? { label: "Back to the start", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
+    const back = ["post", "note", "visual"].includes(kind) ? { label: "Back to the start", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
     const open = { label: kind === "post" ? "Open the post" : "Open the page", href: result.url };
+    // Without a still image, posts show the visual as a plain Run button.
+    const posterNote = result.posterMissing
+      ? " No still image was taken because neither Edge nor Chrome could be started on this computer, so posts show it as a Run button on a plain background."
+      : "";
+    const placeIt = kind === "visual" ? " To show it in a post, open the post and use Visual in the toolbar." : "";
     doc = null;
     if (result.unchanged) {
       showCallout("ok", `Nothing had changed in “${title}”, so there was nothing to publish.`, [back]);
     } else if (result.pushed) {
-      showCallout("ok", wasLive ? `Your changes to “${title}” are published. They will be live in about a minute.` : `“${title}” is published. It will be live in about a minute.`, [
+      showCallout("ok", (wasLive ? `Your changes to “${title}” are published. They will be live in about a minute.` : `“${title}” is published. It will be live in about a minute.`) + placeIt + posterNote, [
         open,
         { label: "Watch the build", href: result.actions },
         back,
@@ -618,6 +660,10 @@ function htmlBlock() {
   const at = afterBlock();
   newHtmlBlock((attrs) => editor.chain().focus().insertContentAt(at, { type: "htmlBlock", attrs }).run());
 }
+function placeVisual() {
+  const at = afterBlock();
+  openVisualPicker(null, (attrs) => editor.chain().focus().insertContentAt(at, { type: "visualEmbed", attrs }).run());
+}
 function annotate() {
   openPicker(null, (attrs) => {
     // Annotations sit after the paragraph they belong to.
@@ -635,6 +681,7 @@ document.querySelector(".toolbar").addEventListener("click", (e) => {
   if (cmd === "link") return setLink();
   if (cmd === "annotate") return annotate();
   if (cmd === "image") return insertImage();
+  if (cmd === "visual") return placeVisual();
   if (cmd === "footnote") return footnote();
   if (cmd === "cite") return cite();
   if (cmd === "xref") return crossLink();
@@ -677,14 +724,15 @@ function showView(id) {
   for (const v of VIEWS) $(v).hidden = v !== id;
   window.scrollTo(0, 0);
 }
-const KIND_NOTE = { project: "Project · ", text: "Site text · ", note: "Note · " };
+const KIND_NOTE = { project: "Project · ", text: "Site text · ", note: "Note · ", visual: "Visual · " };
 
 async function showHome() {
   await saveDraft();
   doc = null;
   showView("home");
   history.replaceState(null, "", "/");
-  const { drafts, posts, notes, sync } = await api("GET", "/api/list");
+  const { drafts, posts, notes, visuals, sync } = await api("GET", "/api/list");
+  setVisuals(visuals);
   showSync(sync);
 
   const draftList = $("draft-list");
@@ -733,7 +781,70 @@ async function showHome() {
     })
   );
   if (!notes.length) noteList.innerHTML = '<li class="muted">No notes yet. Add one above.</li>';
+
+  const visualList = $("visual-list");
+  visualList.replaceChildren(
+    ...visuals.map((v) => {
+      const li = document.createElement("li");
+      const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: v.title });
+      open.addEventListener("click", () => openVisual(v.slug));
+      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: [`/visuals/${v.slug}/`, !v.poster && "no still image", v.draft && "hidden draft"].filter(Boolean).join(" · ") }));
+      return li;
+    })
+  );
+  if (!visuals.length) visualList.innerHTML = '<li class="muted">No visuals yet. Add one from an HTML file, such as one Claude made for you.</li>';
 }
+
+// ---- Visuals: an HTML file, checked and previewed here before it is published ----
+async function setVisualHtml(html, label = "") {
+  visualHtml = html;
+  const preview = $("visual-preview");
+  const state = $("visual-file-state");
+  preview.hidden = !html;
+  preview.srcdoc = html;
+  state.className = "phrase-state";
+  state.textContent = html ? label : "";
+  $("visual-drop").classList.toggle("compact", !!html);
+  $("visual-drop-text").textContent = html ? "Drop a new HTML file here to replace it, or choose a file" : "Drop the visual's HTML file here, or choose a file";
+  if (!html) return;
+  const { problems, bytes } = await api("POST", "/api/visual/check", { html });
+  if (visualHtml !== html) return;
+  const size = bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  if (problems.length) {
+    state.className = "phrase-state bad";
+    state.textContent = `${label ? `${label} ` : ""}This won't work on the site yet: ${problems.join("; ")}.`;
+  } else {
+    state.className = "phrase-state good";
+    state.textContent = `${label ? `${label} ` : ""}${size}. It works on its own, so it's ready to publish.`;
+  }
+}
+async function takeVisualFile(file) {
+  if (!file) return;
+  if (!/\.html?$/i.test(file.name) && file.type !== "text/html") {
+    $("visual-file-state").className = "phrase-state bad";
+    $("visual-file-state").textContent = "Choose an .html file.";
+    return;
+  }
+  const html = await file.text();
+  await setVisualHtml(html, `${file.name}:`);
+  if (!fields.title.value.trim()) {
+    const title = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim();
+    if (title) {
+      fields.title.value = title;
+      if (!slugTouched && !doc?.file) fields.slug.value = slugify(title);
+    }
+  }
+  changed();
+}
+$("visual-file").addEventListener("change", (e) => takeVisualFile(e.target.files?.[0]));
+const drop = $("visual-drop");
+drop.addEventListener("dragover", (e) => (e.preventDefault(), drop.classList.add("over")));
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => {
+  e.preventDefault();
+  drop.classList.remove("over");
+  takeVisualFile(e.dataTransfer?.files?.[0]);
+});
 
 // ---- Notes: one line, published straight from the home screen ----
 $("note-form").addEventListener("submit", async (e) => {
@@ -832,7 +943,7 @@ async function showReferences() {
 // Back returns to wherever this kind of document is listed.
 let backTo = showHome;
 function showWrite(d) {
-  backTo = ["post", "note"].includes(kindOf(d)) ? showHome : showSite;
+  backTo = ["post", "note", "visual"].includes(kindOf(d)) ? showHome : showSite;
   showView("write");
   $("write").classList.remove("done");
   fields.title.readOnly = false;
@@ -863,11 +974,15 @@ async function openNote(file) {
 async function openProject(slug) {
   showWrite(await api("GET", `/api/project?slug=${encodeURIComponent(slug)}`));
 }
+async function openVisual(slug) {
+  showWrite(await api("GET", `/api/visual?slug=${encodeURIComponent(slug)}`));
+}
 async function openText(name) {
   showWrite(await api("GET", `/api/text?name=${encodeURIComponent(name)}`));
 }
 
 $("new-post").addEventListener("click", () => showWrite({ id: null, kind: "post", file: null, meta: {}, body: "" }));
+$("new-visual").addEventListener("click", () => showWrite({ id: null, kind: "visual", file: null, meta: {}, body: "" }));
 $("new-project").addEventListener("click", () => showWrite({ id: null, kind: "project", file: null, meta: { status: "active" }, body: "" }));
 $("go-site").addEventListener("click", showSite);
 $("go-references").addEventListener("click", showReferences);

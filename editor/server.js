@@ -18,6 +18,7 @@ import * as references from "../lib/references.js";
 import * as texts from "../lib/texts.js";
 import * as xref from "../lib/xref.js";
 import * as tagTools from "../lib/tags.js";
+import * as visuals from "../lib/visuals.js";
 import site from "../src/_data/site.js";
 import levels from "../src/_data/levels.js";
 import statuses from "../src/_data/statuses.js";
@@ -109,7 +110,7 @@ const hash = (text) => createHash("sha1").update(text).digest("hex");
 
 function liveFile(kind, file) {
   if (!file) return null;
-  const full = { post: postPath, note: notePath, project: projectPath, text: texts.file }[kind ?? "post"](file);
+  const full = { post: postPath, note: notePath, project: projectPath, text: texts.file, visual: visualPath }[kind ?? "post"](file);
   return existsSync(full) ? full : null;
 }
 
@@ -187,6 +188,72 @@ async function openProject(slug) {
   return { id, kind: "project", file: slug, meta: { ...data, slug }, body: content.replace(/^\n+/, ""), updated: null };
 }
 
+// ---- Visuals ----
+// Each visual is a folder in src/visuals/ (see lib/visuals.js). The editor keeps
+// the HTML file in the draft, so nothing reaches the site until it is published.
+
+const visualPath = (slug) => {
+  if (!visuals.SLUG.test(slug ?? "")) throw new UserError("That visual's address isn't valid.");
+  return path.join(visuals.DIR, slug, "index.md");
+};
+
+async function listVisuals() {
+  if (!existsSync(visuals.DIR)) return [];
+  const slugs = (await readdir(visuals.DIR)).filter((f) => visuals.SLUG.test(f) && existsSync(path.join(visuals.DIR, f, "index.md")));
+  const list = await Promise.all(
+    slugs.map(async (slug) => {
+      const { data } = matter(await readFile(visualPath(slug), "utf8"));
+      return { slug, title: data.title ?? slug, draft: !!data.draft, poster: existsSync(visuals.posterPath(slug)) };
+    })
+  );
+  return list.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+async function openVisual(slug) {
+  const id = `visual-${slug}`;
+  const p = draftPath(id);
+  if (existsSync(p)) return JSON.parse(await readFile(p, "utf8"));
+  const { data, content } = matter(await readFile(visualPath(slug), "utf8"));
+  const html = existsSync(visuals.htmlPath(slug)) ? await readFile(visuals.htmlPath(slug), "utf8") : "";
+  return { id, kind: "visual", file: slug, meta: { ...data, slug, html }, body: content.replace(/^\n+/, ""), updated: null };
+}
+
+// A still image of the visual for posts to show before it runs. It is taken
+// with the Edge or Chrome already on this computer; without either, the visual
+// shows a plain Run button instead, which works just as well.
+async function capturePoster(slug) {
+  let chromium;
+  try {
+    ({ chromium } = await import("playwright-core"));
+  } catch {
+    return null;
+  }
+  const html = visuals.prepare(await readFile(visuals.htmlPath(slug), "utf8"));
+  for (const options of [{ channel: "msedge" }, { channel: "chrome" }, {}]) {
+    let browser;
+    try {
+      browser = await chromium.launch({ ...options, headless: true });
+      const page = await browser.newPage({ viewport: { width: 720, height: 450 }, deviceScaleFactor: 2, colorScheme: "light" });
+      await page.setContent(html, { waitUntil: "load", timeout: 15000 });
+      await page.waitForTimeout(2500);
+      const height = await page.evaluate(() => {
+        const cs = getComputedStyle(document.body);
+        return Math.ceil(document.body.scrollHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom));
+      });
+      await page.setViewportSize({ width: 720, height: Math.min(1200, Math.max(240, height)) });
+      await page.waitForTimeout(400);
+      const shot = await page.screenshot({ type: "png" });
+      await writeFile(visuals.posterPath(slug), await sharp(shot).png({ compressionLevel: 9 }).toBuffer());
+      return visuals.posterPath(slug);
+    } catch {
+      // Try the next browser.
+    } finally {
+      await browser?.close().catch(() => {});
+    }
+  }
+  return null;
+}
+
 // ---- Site text ----
 
 // Each text with the start of what the site shows now, and whether it has unpublished changes.
@@ -219,7 +286,7 @@ async function saveDraft({ id, kind, file, meta, body, base }) {
 
 // ---- Front matter ----
 
-const FIELD_ORDER = ["title", "kind", "by", "source", "description", "level", "history", "tags", "project", "series", "status", "summary", "links"];
+const FIELD_ORDER = ["title", "kind", "by", "source", "description", "level", "history", "tags", "project", "series", "visual", "status", "summary", "links"];
 const yamlString = (s) => (/^[A-Za-z0-9][\w .,'’()?!-]*$/.test(s) && !/: /.test(s) ? s : JSON.stringify(s));
 
 function frontMatter(meta) {
@@ -308,6 +375,32 @@ function plan({ kind = "post", file, meta, body }) {
       message: `${file ? "Update" : "Add"} note “${meta.title.trim()}”`,
       url: `${site.url}/notes/${target.match(POST_FILE)[2]}/`,
       file: target,
+      isNew: !file,
+    };
+  }
+  if (kind === "visual") {
+    const problems = [];
+    if (!meta.title?.trim()) problems.push("Give the visual a title.");
+    if (!meta.description?.trim()) problems.push("Write the text description: a few sentences saying what the visual shows, for people who can't see or run it.");
+    if (!meta.html?.trim()) problems.push("Add the visual's HTML file.");
+    else problems.push(...visuals.htmlProblems(meta.html).map((p) => `The HTML file won't work on the site: ${p}.`));
+    problems.push(...tagTools.problems(meta.tags).map((p) => `Tags: ${p}.`));
+    const slug = file ?? slugify(meta.slug || meta.title || "");
+    if (!slug) problems.push("The title needs at least one letter or number.");
+    if (problems.length) throw new UserError(problems.join(" "));
+    const full = visualPath(slug);
+    if (!file && existsSync(path.dirname(full))) throw new UserError(`A visual at /visuals/${slug}/ already exists. Change the address under More details.`);
+    const { slug: _s, html, draft, ...fields } = meta;
+    fields.description = fields.description.trim();
+    if (draft) fields.draft = true;
+    return {
+      full,
+      content: frontMatter(fields) + body.trim() + "\n",
+      files: [{ full: visuals.htmlPath(slug), content: html }],
+      poster: slug,
+      message: `${file ? "Update" : "Add"} visual “${meta.title.trim()}”`,
+      url: `${site.url}/visuals/${slug}/`,
+      file: slug,
       isNew: !file,
     };
   }
@@ -442,16 +535,25 @@ async function publish(doc) {
   await readyToPublish();
   if (p.isNew && existsSync(p.full)) throw new UserError(`${path.relative(ROOT, p.full)} already exists. Change the address under More details.`);
 
-  const previous = existsSync(p.full) ? await readFile(p.full, "utf8") : null;
-  await mkdir(path.dirname(p.full), { recursive: true });
-  await writeFile(p.full, p.content);
-  await checkBuild(async () => (previous === null ? unlink(p.full) : writeFile(p.full, previous)));
+  const files = [{ full: p.full, content: p.content }, ...(p.files ?? [])];
+  const previous = await Promise.all(files.map(async (f) => (existsSync(f.full) ? readFile(f.full, "utf8") : null)));
+  for (const f of files) {
+    await mkdir(path.dirname(f.full), { recursive: true });
+    await writeFile(f.full, f.content);
+  }
+  await checkBuild(() => Promise.all(files.map((f, i) => (previous[i] === null ? unlink(f.full) : writeFile(f.full, previous[i])))));
 
-  const paths = [p.full, ...imagesIn(p.content)];
+  const paths = [...files.map((f) => f.full), ...imagesIn(p.content)];
+  let posterMissing = false;
+  if (p.poster) {
+    const poster = await capturePoster(p.poster);
+    if (poster) paths.push(poster);
+    else posterMissing = !existsSync(visuals.posterPath(p.poster));
+  }
   if (await libraryChanged()) paths.push(references.LIBRARY);
   const result = await commitAndPush(paths, p.message);
   if (doc.id) await unlink(draftPath(doc.id)).catch(() => {});
-  return { ...result, url: p.url, file: p.file, actions: `${site.repo}/actions` };
+  return { ...result, url: p.url, file: p.file, posterMissing, actions: `${site.repo}/actions` };
 }
 
 // ---- Images ----
@@ -594,6 +696,7 @@ async function meta() {
     texts: texts.texts,
     stances: annotations.stances,
     projects,
+    visuals: await listVisuals(),
     tags: uniq([...posts, ...notes].flatMap((p) => tagTools.expand(p.tags ?? []))),
     noteKinds: uniq(notes.map((f) => f.kind)),
     series: uniq(posts.map((p) => p.series)),
@@ -618,9 +721,12 @@ const routes = {
     posts: await listPosts(),
     notes: await listNotes(),
     projects: await listProjects(),
+    visuals: await listVisuals(),
   }),
   "GET /api/note": async (_b, q) => (await syncSite(), withLive(await openNote(q.get("file")))),
   "GET /api/project": async (_b, q) => (await syncSite(), withLive(await openProject(q.get("slug")))),
+  "GET /api/visual": async (_b, q) => (await syncSite(), withLive(await openVisual(q.get("slug")))),
+  "POST /api/visual/check": async (b) => ({ problems: visuals.htmlProblems(String(b.html ?? "")), bytes: Buffer.byteLength(String(b.html ?? "")) }),
   "GET /api/text": async (_b, q) => (await syncSite(), withLive(await openText(q.get("name")))),
   "GET /api/draft": async (_b, q) => (await syncSite(), withLive(JSON.parse(await readFile(draftPath(q.get("id")), "utf8")))),
   "GET /api/post": async (_b, q) => (await syncSite(), withLive(await openPost(q.get("file")))),
@@ -685,6 +791,16 @@ const server = createHttpServer(async (req, res) => {
     }
     const ext = path.extname(file).slice(1);
     res.setHeader("content-type", ext === "jpg" ? "image/jpeg" : `image/${ext}`);
+    return res.end(await readFile(file));
+  }
+  const poster = url.pathname.match(/^\/visual-poster\/([a-z0-9][a-z0-9-]*)\.png$/);
+  if (poster) {
+    const file = visuals.posterPath(poster[1]);
+    if (!existsSync(file)) {
+      res.statusCode = 404;
+      return res.end("Not found");
+    }
+    res.setHeader("content-type", "image/png");
     return res.end(await readFile(file));
   }
   if (!url.pathname.startsWith("/api/")) return vite.middlewares(req, res);

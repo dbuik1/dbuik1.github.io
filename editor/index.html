@@ -58,6 +58,13 @@
         <h2>Notes</h2>
         <ul class="doc-list" id="note-list"></ul>
       </section>
+      <section class="home-section">
+        <div class="home-head">
+          <h2>Visuals</h2>
+          <button type="button" class="secondary" id="new-visual">Add a visual</button>
+        </div>
+        <ul class="doc-list" id="visual-list"></ul>
+      </section>
     </main>
 
     <!-- Site text and projects -->
@@ -128,7 +135,7 @@
 
       <div class="callout" id="callout" role="status" hidden></div>
 
-      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off" data-kinds="post project note">
+      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off" data-kinds="post project note visual">
       <div data-kinds="text inline">
         <h1 class="text-label" id="text-label"></h1>
         <p class="lede" id="text-where"></p>
@@ -137,10 +144,10 @@
       <div class="details" data-kinds="note">
         <label>Kind <input id="kind" list="kind-options" placeholder="e.g. quote" autocomplete="off"></label>
         <label>Who said it <input id="by" autocomplete="off"></label>
-        <label class="grow">Source <input id="source" placeholder="Where, or a citation like [@key, p. 4]" autocomplete="off"></label>
+        <label class="grow">Source <input id="credit-source" placeholder="Where, or a citation like [@key, p. 4]" autocomplete="off"></label>
         <datalist id="kind-options"></datalist>
       </div>
-      <div class="details" data-kinds="post note">
+      <div class="details" data-kinds="post note visual">
         <label data-kinds="post">Research level <select id="level"></select></label>
         <div class="tags-field">
           <span class="tags-label" id="tags-label">Tags</span>
@@ -155,13 +162,26 @@
         <label class="grow">Summary <input id="summary" placeholder="One line shown in lists" autocomplete="off"></label>
       </div>
 
-      <details class="more" data-kinds="post project">
+      <div class="visual-panel" data-kinds="visual">
+        <label class="drop-zone" id="visual-drop">
+          <span id="visual-drop-text">Drop the visual's HTML file here, or choose a file</span>
+          <input type="file" id="visual-file" accept=".html,.htm,text/html" class="visually-hidden">
+        </label>
+        <p class="phrase-state" id="visual-file-state" aria-live="polite"></p>
+        <iframe id="visual-preview" class="visual-preview" sandbox="allow-scripts" title="Preview of the visual" hidden></iframe>
+        <label class="note-field"><span>Text description <span class="muted">(required) What the visual shows and does, for people who can't see or run it</span></span>
+          <textarea id="visual-description" rows="3"></textarea>
+        </label>
+      </div>
+
+      <details class="more" data-kinds="post project visual">
         <summary>More details</summary>
         <div class="more-grid">
           <label class="wide" data-kinds="post">Description <input id="description" placeholder="One line for search results and link previews. Left blank, the first paragraph is used"></label>
           <label>Address <span class="slug-field"><span class="muted" id="slug-prefix">/blog/</span><input id="slug" autocomplete="off"><span class="muted">/</span></span></label>
           <label data-kinds="post">Project <select id="project"><option value="">None</option></select></label>
           <label data-kinds="post">Series <input id="series" list="series-options" autocomplete="off"><datalist id="series-options"></datalist></label>
+          <label data-kinds="post">Visual at the top <select id="post-visual"><option value="">None</option></select></label>
           <div class="wide links-field" data-kinds="project">
             <span>Links</span>
             <ul class="link-rows" id="link-rows"></ul>
@@ -170,9 +190,11 @@
         </div>
       </details>
 
+      <p class="lede visual-intro-label" data-kinds="visual">Your introduction, shown above the visual on its page. Optional.</p>
+
       <input id="inline-text" class="inline-text" aria-labelledby="text-label" autocomplete="off" data-kinds="inline">
 
-      <div class="toolbar" role="toolbar" aria-label="Formatting" data-kinds="post project text note">
+      <div class="toolbar" role="toolbar" aria-label="Formatting" data-kinds="post project text note visual">
         <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
         <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
         <button type="button" data-cmd="h2" title="Heading">Heading</button>
@@ -193,6 +215,7 @@
         </details>
         <span class="toolbar-gap"></span>
         <button type="button" data-cmd="image" class="insert-button" title="Insert an image">Image</button>
+        <button type="button" data-cmd="visual" class="insert-button" title="Place a visual after the paragraph you're in" data-kinds="post project note">Visual</button>
         <button type="button" data-cmd="footnote" class="insert-button" title="Add a footnote at the cursor" data-kinds="post project note">Footnote</button>
         <button type="button" data-cmd="cite" class="insert-button" title="Cite a source from your library" data-kinds="post project note">Cite</button>
         <button type="button" data-cmd="annotate" class="insert-button" title="Annotate a confession or Bible passage" data-kinds="post">Annotate</button>
@@ -207,7 +230,7 @@
         </div>
       </div>
 
-      <div id="content" class="post-body" data-kinds="post project text note"></div>
+      <div id="content" class="post-body" data-kinds="post project text note visual"></div>
       <textarea id="source" class="source-text" aria-label="Source: Markdown and HTML" spellcheck="true" hidden></textarea>
     </main>
   </div>
@@ -271,6 +294,27 @@
       <footer class="picker-foot">
         <span class="hint">Large images are shrunk on this computer; the site makes smaller copies when it builds.</span>
         <button type="submit" class="primary" id="image-save">Insert image</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="visual-dialog" class="picker" aria-labelledby="visual-dialog-title">
+    <form method="dialog" class="picker-form" id="visual-form">
+      <header class="picker-head">
+        <h2 id="visual-dialog-title">Place a visual</h2>
+        <button type="button" class="link-button" data-close>Cancel</button>
+      </header>
+      <p class="lede" id="visual-none" hidden>There are no visuals yet. Add one from the start screen under Visuals, then place it here.</p>
+      <div id="visual-choose-fields">
+        <label class="note-field"><span>Visual</span><select id="visual-choice"></select></label>
+        <label class="note-field"><span>Caption <span class="muted">(optional, shown under it)</span></span>
+          <input id="visual-caption" autocomplete="off">
+        </label>
+      </div>
+      <p class="phrase-state bad" id="visual-problem" aria-live="polite"></p>
+      <footer class="picker-foot">
+        <span class="hint">Readers see its still image and a Run button until they start it.</span>
+        <button type="submit" class="primary" id="visual-save">Insert visual</button>
       </footer>
     </form>
   </dialog>

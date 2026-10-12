@@ -37,6 +37,16 @@ This is the personal website of {{ (site.author) | safe }}. Writing is grouped b
 - [{{ (f.data.title | clip(100)) | safe }}]({{ (site.url) | safe }}{{ (f.url) | safe }}){% if f.data.by %}: {{ (f.data.by) | safe }}{% endif %}
 {% endfor -%}
 {%- endif %}
+{%- if collections.visuals | length %}
+
+## Visuals
+
+Interactive animations and simulations. Each page has a text description of what the visual shows.
+
+{% for v in collections.visuals -%}
+- [{{ (v.data.title) | safe }}]({{ (site.url) | safe }}{{ (v.url) | safe }}): {{ (v.data.description | clip(200)) | safe }}
+{% endfor -%}
+{%- endif %}
 
 ## Optional
 

@@ -1,0 +1,20 @@
+{#- Expects `visualList`. -#}
+{%- if visualList | length %}
+<ul class="visual-list">
+  {%- for v in visualList %}
+  {%- set usedBy = collections.visualUses[v.fileSlug] or [] %}
+  <li>
+    {%- if v.data.poster %}
+    <a class="visual-thumb" href="{{ v.url }}" tabindex="-1" aria-hidden="true"><img src="{{ v.url }}poster.png" alt="" loading="lazy" decoding="async"></a>
+    {%- endif %}
+    <a class="post-title" href="{{ v.url }}">{{ v.data.title }}</a>
+    <span class="post-meta">
+      {%- if usedBy | length %}Used in {{ usedBy | length }} {{ "piece" if usedBy | length == 1 else "pieces" }} of writing{% else %}On its own{% endif %}
+      {%- if v.data.draft %} · <span class="draft">Draft</span>{% endif %}
+    </span>
+  </li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="empty">No visuals yet.</p>
+{%- endif %}

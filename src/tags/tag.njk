@@ -8,7 +8,7 @@ pagination:
 permalink: "{{ tag.url }}"
 eleventyComputed:
   title: "Tagged “{{ tag.name | replace('/', ' / ') }}”"
-  description: "Writing and fragments by David Buik tagged “{{ tag.name | replace('/', ' / ') }}”."
+  description: "Writing and notes by David Buik tagged “{{ tag.name | replace('/', ' / ') }}”."
 ---
 {%- if tag.parent or tag.children | length %}
 <nav class="filters tag-family" aria-label="Related tags">
@@ -20,12 +20,12 @@ eleventyComputed:
 </nav>
 {%- endif %}
 {%- set postList = collections.posts | withTag(tag.name) %}
-{%- set fragmentList = collections.fragments | withTag(tag.name) %}
-{%- if postList | length or not fragmentList | length %}
+{%- set noteList = collections.notes | withTag(tag.name) %}
+{%- if postList | length or not noteList | length %}
 {% include "partials/post-list.njk" %}
 {%- endif %}
-{%- if fragmentList | length %}
-<h2>Fragments</h2>
-{% include "partials/fragment-list.njk" %}
+{%- if noteList | length %}
+<h2>Notes</h2>
+{% include "partials/note-list.njk" %}
 {%- endif %}
 <p><a href="/tags/">All tags</a></p>

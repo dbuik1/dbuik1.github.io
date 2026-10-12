@@ -29,11 +29,11 @@ This is the personal website of {{ (site.author) | safe }}. Writing is grouped b
 - [{{ (p.data.title) | safe }}]({{ (site.url) | safe }}{{ (p.url) | safe }}): {% if p.data.summary %}{{ (p.data.summary) | safe }} {% endif %}({{ (st.name) | safe }})
 {% endfor -%}
 {%- endif %}
-{%- if collections.fragments | length %}
+{%- if collections.notes | length %}
 
-## Fragments
+## Notes
 
-{% for f in collections.fragments | head(50) -%}
+{% for f in collections.notes | head(50) -%}
 - [{{ (f.data.title | clip(100)) | safe }}]({{ (site.url) | safe }}{{ (f.url) | safe }}){% if f.data.by %}: {{ (f.data.by) | safe }}{% endif %}
 {% endfor -%}
 {%- endif %}

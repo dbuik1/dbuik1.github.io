@@ -4,7 +4,7 @@ import { Markdown } from "@tiptap/markdown";
 import { Annotation } from "./annotation.js";
 import { openPicker, initPicker } from "./picker.js";
 import { Figure } from "./figure.js";
-import { Footnote, Citation } from "./notes.js";
+import { Footnote, Citation } from "./footnotes.js";
 import { initDialogs, loadLibrary, citationLabel, openImage, openFootnote, openCite } from "./dialogs.js";
 import { initLibrary, showLibrary } from "./library.js";
 import { Xref, initXref, loadTargets, openXref } from "./xref.js";
@@ -103,7 +103,7 @@ fields.level.append(option("", "Choose…"), ...meta.levels.map((l) => option(l.
 fields.project.append(...meta.projects.map((p) => option(p.slug, p.title || p.slug)));
 fields.status.append(option("", "Choose…"), ...meta.statuses.map((x) => option(x.slug, x.name)));
 $("tag-options").append(...meta.tags.map((t) => option(t, t)));
-$("kind-options").append(...meta.fragmentKinds.map((k) => option(k, k)));
+$("kind-options").append(...meta.noteKinds.map((k) => option(k, k)));
 $("series-options").append(...meta.series.map((s) => option(s, s)));
 
 const slugify = (s) =>
@@ -214,7 +214,7 @@ function collect() {
     const inline = textInfo(doc.file)?.inline;
     return { ...base, meta: {}, body: inline ? fields.inline.value.trim() : body() };
   }
-  if (kind === "fragment") {
+  if (kind === "note") {
     return {
       ...base,
       meta: {
@@ -273,9 +273,9 @@ const PUBLISH = {
     new: ["Publish project", "Checks the page, then pushes it live with any new images and sources."],
     live: ["Update live project", "Checks the page, then pushes the changes live with any new images and sources."],
   },
-  fragment: {
-    new: ["Publish fragment", "Checks the fragment, then pushes it live."],
-    live: ["Update live fragment", "Checks the fragment, then pushes the changes live."],
+  note: {
+    new: ["Publish note", "Checks the note, then pushes it live."],
+    live: ["Update live note", "Checks the note, then pushes the changes live."],
   },
   text: { live: ["Update live text", "Checks the site, then pushes this text live with any new images and sources."] },
 };
@@ -301,7 +301,7 @@ function fill(d) {
   renderLinks();
   $("slug-prefix").textContent = kind === "project" ? "/projects/" : "/blog/";
   fields.title.value = m.title ?? "";
-  fields.title.placeholder = kind === "fragment" ? "The line itself" : "Title";
+  fields.title.placeholder = kind === "note" ? "The note in one line" : "Title";
   fields.level.value = m.level ?? "";
   levelHint();
   fields.description.value = m.description ?? "";
@@ -337,10 +337,10 @@ function liveUrl(d) {
   if (kind === "text") return meta.siteUrl + textInfo(d.file).url;
   if (kind === "project") return `${meta.siteUrl}/projects/${d.file}/`;
   const slug = d.file.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.md$/, "");
-  return `${meta.siteUrl}/${kind === "fragment" ? "fragments" : "blog"}/${slug}/`;
+  return `${meta.siteUrl}/${kind === "note" ? "notes" : "blog"}/${slug}/`;
 }
 
-const REOPEN = { post: (d) => openPost(d.file), fragment: (d) => openFragment(d.file), project: (d) => openProject(d.file), text: (d) => openText(d.file) };
+const REOPEN = { post: (d) => openPost(d.file), note: (d) => openNote(d.file), project: (d) => openProject(d.file), text: (d) => openText(d.file) };
 
 function showLive(d) {
   const box = $("live-state");
@@ -397,11 +397,11 @@ function showLive(d) {
 
 // Shown on every screen: the latest version couldn't be fetched, or the editor itself changed.
 function showSync(sync) {
-  const notes = [];
-  if (sync?.editorChanged) notes.push("The editor itself was updated on GitHub. To use the new version, stop it with Ctrl+C in its window and run npm run write again.");
-  if (sync?.error) notes.push(sync.error);
-  $("sync-note").textContent = notes.join("\n\n");
-  $("sync-note").hidden = !notes.length;
+  const messages = [];
+  if (sync?.editorChanged) messages.push("The editor itself was updated on GitHub. To use the new version, stop it with Ctrl+C in its window and run npm run write again.");
+  if (sync?.error) messages.push(sync.error);
+  $("sync-note").textContent = messages.join("\n\n");
+  $("sync-note").hidden = !messages.length;
 }
 
 const time = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -471,7 +471,7 @@ $("publish").addEventListener("click", async () => {
     const kind = kindOf(doc);
     const title = kind === "text" ? textInfo(doc.file).label : fields.title.value.trim();
     const wasLive = !!doc?.file;
-    const back = ["post", "fragment"].includes(kind) ? { label: "Back to the start", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
+    const back = ["post", "note"].includes(kind) ? { label: "Back to the start", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
     const open = { label: kind === "post" ? "Open the post" : "Open the page", href: result.url };
     doc = null;
     if (result.unchanged) {
@@ -677,14 +677,14 @@ function showView(id) {
   for (const v of VIEWS) $(v).hidden = v !== id;
   window.scrollTo(0, 0);
 }
-const KIND_NOTE = { project: "Project · ", text: "Site text · ", fragment: "Fragment · " };
+const KIND_NOTE = { project: "Project · ", text: "Site text · ", note: "Note · " };
 
 async function showHome() {
   await saveDraft();
   doc = null;
   showView("home");
   history.replaceState(null, "", "/");
-  const { drafts, posts, fragments, sync } = await api("GET", "/api/list");
+  const { drafts, posts, notes, sync } = await api("GET", "/api/list");
   showSync(sync);
 
   const draftList = $("draft-list");
@@ -722,40 +722,40 @@ async function showHome() {
   );
   if (!posts.length) postList.innerHTML = '<li class="muted">Nothing published yet.</li>';
 
-  const fragmentList = $("fragment-list");
-  fragmentList.replaceChildren(
-    ...fragments.map((f) => {
+  const noteList = $("note-list");
+  noteList.replaceChildren(
+    ...notes.map((f) => {
       const li = document.createElement("li");
       const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: f.title });
-      open.addEventListener("click", () => openFragment(f.file));
+      open.addEventListener("click", () => openNote(f.file));
       li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: [f.date, f.kind, f.draft && "hidden draft"].filter(Boolean).join(" · ") }));
       return li;
     })
   );
-  if (!fragments.length) fragmentList.innerHTML = '<li class="muted">No fragments yet. Add one above.</li>';
+  if (!notes.length) noteList.innerHTML = '<li class="muted">No notes yet. Add one above.</li>';
 }
 
-// ---- Fragments: one line, published straight from the home screen ----
-$("fragment-form").addEventListener("submit", async (e) => {
+// ---- Notes: one line, published straight from the home screen ----
+$("note-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const title = $("fragment-line").value.trim();
+  const title = $("note-line").value.trim();
   if (!title) return;
-  const button = $("fragment-publish");
-  const state = $("fragment-state");
+  const button = $("note-publish");
+  const state = $("note-state");
   const label = button.textContent;
   button.disabled = true;
   button.textContent = "Checking…";
   state.hidden = true;
   try {
     const result = await api("POST", "/api/publish", {
-      kind: "fragment",
+      kind: "note",
       file: null,
       meta: {
         title,
-        kind: $("fragment-kind").value.trim(),
-        by: $("fragment-by").value.trim(),
-        source: $("fragment-source").value.trim(),
-        tags: [...new Set($("fragment-tags").value.split(",").map((t) => t.trim()).filter(Boolean))],
+        kind: $("note-kind").value.trim(),
+        by: $("note-by").value.trim(),
+        source: $("note-source").value.trim(),
+        tags: [...new Set($("note-tags").value.split(",").map((t) => t.trim()).filter(Boolean))],
       },
       body: "",
     });
@@ -766,8 +766,8 @@ $("fragment-form").addEventListener("submit", async (e) => {
         : `Committed on this computer but couldn't be pushed, so it isn't live yet. Run git push in the site folder.\n${result.pushError ?? ""} `,
       Object.assign(document.createElement("a"), { href: result.url, target: "_blank", rel: "noopener", textContent: "Open it" })
     );
-    for (const id of ["fragment-line", "fragment-by", "fragment-source"]) $(id).value = "";
-    $("fragment-form").querySelector(".quick-more").open = false;
+    for (const id of ["note-line", "note-by", "note-source"]) $(id).value = "";
+    $("note-form").querySelector(".quick-more").open = false;
     await showHome();
   } catch (err) {
     state.className = "quick-state error";
@@ -776,7 +776,7 @@ $("fragment-form").addEventListener("submit", async (e) => {
     state.hidden = false;
     button.disabled = false;
     button.textContent = label;
-    $("fragment-line").focus();
+    $("note-line").focus();
   }
 });
 
@@ -832,7 +832,7 @@ async function showReferences() {
 // Back returns to wherever this kind of document is listed.
 let backTo = showHome;
 function showWrite(d) {
-  backTo = ["post", "fragment"].includes(kindOf(d)) ? showHome : showSite;
+  backTo = ["post", "note"].includes(kindOf(d)) ? showHome : showSite;
   showView("write");
   $("write").classList.remove("done");
   fields.title.readOnly = false;
@@ -857,8 +857,8 @@ async function openDraft(id) {
 async function openPost(file) {
   showWrite(await api("GET", `/api/post?file=${encodeURIComponent(file)}`));
 }
-async function openFragment(file) {
-  showWrite(await api("GET", `/api/fragment?file=${encodeURIComponent(file)}`));
+async function openNote(file) {
+  showWrite(await api("GET", `/api/note?file=${encodeURIComponent(file)}`));
 }
 async function openProject(slug) {
   showWrite(await api("GET", `/api/project?slug=${encodeURIComponent(slug)}`));

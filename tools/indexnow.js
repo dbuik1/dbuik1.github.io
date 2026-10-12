@@ -13,11 +13,11 @@ function urlsFor(file) {
   let m;
   if ((m = file.match(/^src\/blog\/\d{4}-\d\d-\d\d-([^/]+)\.md$/))) return [`/blog/${m[1]}/`, "/blog/", "/"];
   if ((m = file.match(/^src\/projects\/([^/]+)\.md$/))) return [`/projects/${m[1]}/`, "/projects/", "/"];
-  if ((m = file.match(/^src\/fragments\/\d{4}-\d\d-\d\d-([^/]+)\.md$/))) return [`/fragments/${m[1]}/`, "/fragments/"];
+  if ((m = file.match(/^src\/notes\/\d{4}-\d\d-\d\d-([^/]+)\.md$/))) return [`/notes/${m[1]}/`, "/notes/"];
   if (file === "src/_text/colophon.md") return ["/colophon/"];
   if (file.startsWith("src/_text/home-")) return ["/"];
   if (file.startsWith("src/_text/level")) return ["/levels/", "/blog/"];
-  if (file === "src/_text/fragments-intro.md") return ["/fragments/"];
+  if (file === "src/_text/notes-intro.md") return ["/notes/"];
   return [];
 }
 

@@ -26,7 +26,7 @@ const run = promisify(execFile);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BLOG = path.join(ROOT, "src/blog");
 const PROJECTS = path.join(ROOT, "src/projects");
-const FRAGMENTS = path.join(ROOT, "src/fragments");
+const NOTES = path.join(ROOT, "src/notes");
 const DRAFTS = path.join(ROOT, "drafts");
 const IMAGES = path.join(ROOT, "src/images");
 const PORT = Number(process.env.PORT) || 8081;
@@ -109,7 +109,7 @@ const hash = (text) => createHash("sha1").update(text).digest("hex");
 
 function liveFile(kind, file) {
   if (!file) return null;
-  const full = { post: postPath, fragment: fragmentPath, project: projectPath, text: texts.file }[kind ?? "post"](file);
+  const full = { post: postPath, note: notePath, project: projectPath, text: texts.file }[kind ?? "post"](file);
   return existsSync(full) ? full : null;
 }
 
@@ -130,35 +130,35 @@ function withLive(doc) {
   return out;
 }
 
-// ---- Fragments ----
+// ---- Notes ----
 
-const fragmentPath = (file) => {
-  if (!POST_FILE.test(file ?? "")) throw new UserError("That fragment file name isn't valid.");
-  return path.join(FRAGMENTS, file);
+const notePath = (file) => {
+  if (!POST_FILE.test(file ?? "")) throw new UserError("That note file name isn't valid.");
+  return path.join(NOTES, file);
 };
 
-async function listFragments() {
-  if (!existsSync(FRAGMENTS)) return [];
-  const files = (await readdir(FRAGMENTS)).filter((f) => POST_FILE.test(f)).sort().reverse();
+async function listNotes() {
+  if (!existsSync(NOTES)) return [];
+  const files = (await readdir(NOTES)).filter((f) => POST_FILE.test(f)).sort().reverse();
   return Promise.all(
     files.map(async (file) => {
-      const { data } = matter(await readFile(path.join(FRAGMENTS, file), "utf8"));
+      const { data } = matter(await readFile(path.join(NOTES, file), "utf8"));
       return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], kind: data.kind ?? "", draft: !!data.draft };
     })
   );
 }
 
-async function openFragment(file) {
-  const id = `fragment-${slugify(file.replace(/\.md$/, ""))}`;
+async function openNote(file) {
+  const id = `note-${slugify(file.replace(/\.md$/, ""))}`;
   const p = draftPath(id);
   if (existsSync(p)) return JSON.parse(await readFile(p, "utf8"));
-  const { data, content } = matter(await readFile(fragmentPath(file), "utf8"));
+  const { data, content } = matter(await readFile(notePath(file), "utf8"));
   const [, date, slug] = file.match(POST_FILE);
-  return { id, kind: "fragment", file, meta: { ...data, date, slug }, body: content.replace(/^\n+/, ""), updated: null };
+  return { id, kind: "note", file, meta: { ...data, date, slug }, body: content.replace(/^\n+/, ""), updated: null };
 }
 
-// A fragment's address comes from its first few words, so long lines still get short addresses.
-const fragmentSlug = (text) => slugify(String(text).split(/\s+/).slice(0, 8).join(" ")).slice(0, 60).replace(/-$/, "");
+// A note's address comes from its first few words, so long lines still get short addresses.
+const noteSlug = (text) => slugify(String(text).split(/\s+/).slice(0, 8).join(" ")).slice(0, 60).replace(/-$/, "");
 
 // ---- Projects ----
 
@@ -289,24 +289,24 @@ function plan({ kind = "post", file, meta, body }) {
       isNew: false,
     };
   }
-  if (kind === "fragment") {
+  if (kind === "note") {
     const problems = [];
-    if (!meta.title?.trim()) problems.push("Write the line itself in the title.");
+    if (!meta.title?.trim()) problems.push("Write the note in one line in the title.");
     problems.push(...tagTools.problems(meta.tags).map((p) => `Tags: ${p}.`));
-    const slug = fragmentSlug(meta.slug || meta.title || "");
+    const slug = noteSlug(meta.slug || meta.title || "");
     if (!slug) problems.push("The line needs at least one letter or number.");
     if (problems.length) throw new UserError(problems.join(" "));
     const target = file ?? `${today()}-${slug}.md`;
-    const full = fragmentPath(target);
-    if (!file && existsSync(full)) throw new UserError(`A fragment called ${target} already exists. Change a word or two.`);
+    const full = notePath(target);
+    if (!file && existsSync(full)) throw new UserError(`A note called ${target} already exists. Change a word or two.`);
     const { date, slug: _slug, draft, ...fields } = meta;
     for (const k of ["kind", "by", "source"]) fields[k] = String(fields[k] ?? "").trim();
     if (draft) fields.draft = true;
     return {
       full,
       content: frontMatter(fields) + body.trim() + "\n",
-      message: `${file ? "Update" : "Add"} fragment “${meta.title.trim()}”`,
-      url: `${site.url}/fragments/${target.match(POST_FILE)[2]}/`,
+      message: `${file ? "Update" : "Add"} note “${meta.title.trim()}”`,
+      url: `${site.url}/notes/${target.match(POST_FILE)[2]}/`,
       file: target,
       isNew: !file,
     };
@@ -481,7 +481,7 @@ async function saveImage({ name, type, data }) {
 async function usesOf(key) {
   const pattern = new RegExp(`@${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w:.-])`);
   const found = [];
-  for (const dir of [BLOG, PROJECTS, FRAGMENTS].filter((d) => existsSync(d))) {
+  for (const dir of [BLOG, PROJECTS, NOTES].filter((d) => existsSync(d))) {
     for (const f of (await readdir(dir)).filter((x) => x.endsWith(".md"))) {
       if (pattern.test(await readFile(path.join(dir, f), "utf8"))) found.push(path.relative(ROOT, path.join(dir, f)));
     }
@@ -581,9 +581,9 @@ async function meta() {
       title: matter(await readFile(path.join(PROJECTS, f), "utf8")).data.title,
     }))
   );
-  const fragments = existsSync(FRAGMENTS)
+  const notes = existsSync(NOTES)
     ? await Promise.all(
-        (await readdir(FRAGMENTS)).filter((f) => f.endsWith(".md")).map(async (f) => matter(await readFile(path.join(FRAGMENTS, f), "utf8")).data)
+        (await readdir(NOTES)).filter((f) => f.endsWith(".md")).map(async (f) => matter(await readFile(path.join(NOTES, f), "utf8")).data)
       )
     : [];
   const uniq = (xs) => [...new Set(xs.filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -594,8 +594,8 @@ async function meta() {
     texts: texts.texts,
     stances: annotations.stances,
     projects,
-    tags: uniq([...posts, ...fragments].flatMap((p) => tagTools.expand(p.tags ?? []))),
-    fragmentKinds: uniq(fragments.map((f) => f.kind)),
+    tags: uniq([...posts, ...notes].flatMap((p) => tagTools.expand(p.tags ?? []))),
+    noteKinds: uniq(notes.map((f) => f.kind)),
     series: uniq(posts.map((p) => p.series)),
     outline: annotations.outline(),
   };
@@ -616,10 +616,10 @@ const routes = {
     texts: await listTexts(),
     drafts: await listDrafts(),
     posts: await listPosts(),
-    fragments: await listFragments(),
+    notes: await listNotes(),
     projects: await listProjects(),
   }),
-  "GET /api/fragment": async (_b, q) => (await syncSite(), withLive(await openFragment(q.get("file")))),
+  "GET /api/note": async (_b, q) => (await syncSite(), withLive(await openNote(q.get("file")))),
   "GET /api/project": async (_b, q) => (await syncSite(), withLive(await openProject(q.get("slug")))),
   "GET /api/text": async (_b, q) => (await syncSite(), withLive(await openText(q.get("name")))),
   "GET /api/draft": async (_b, q) => (await syncSite(), withLive(JSON.parse(await readFile(draftPath(q.get("id")), "utf8")))),

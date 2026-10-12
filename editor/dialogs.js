@@ -1,5 +1,5 @@
 // The Image, Footnote and Cite dialogs.
-import { balanced } from "./notes.js";
+import { balanced } from "./footnotes.js";
 
 const $ = (id) => document.getElementById(id);
 let api;
@@ -118,28 +118,28 @@ export function openImage(attrs, done, file = null) {
 let noteDone = null;
 
 function initNote() {
-  $("note-form").addEventListener("submit", (e) => {
+  $("footnote-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const text = $("note-text").value.replace(/\s*\n\s*/g, " ").trim();
-    if (!text) return ($("note-problem").textContent = "Write the note first.");
-    if (!balanced(text)) return ($("note-problem").textContent = "Square brackets in a note must come in pairs.");
-    $("note-dialog").close();
+    const text = $("footnote-text").value.replace(/\s*\n\s*/g, " ").trim();
+    if (!text) return ($("footnote-problem").textContent = "Write the footnote first.");
+    if (!balanced(text)) return ($("footnote-problem").textContent = "Square brackets in a footnote must come in pairs.");
+    $("footnote-dialog").close();
     noteDone?.({ text });
   });
-  $("note-remove").addEventListener("click", () => {
-    $("note-dialog").close();
+  $("footnote-remove").addEventListener("click", () => {
+    $("footnote-dialog").close();
     noteDone?.(null);
   });
 }
 
 export function openFootnote(attrs, done) {
   noteDone = done;
-  $("note-text").value = attrs?.text ?? "";
-  $("note-problem").textContent = "";
+  $("footnote-text").value = attrs?.text ?? "";
+  $("footnote-problem").textContent = "";
   $("note-save").textContent = attrs ? "Save note" : "Add footnote";
-  $("note-remove").hidden = !attrs;
-  $("note-dialog").showModal();
-  $("note-text").focus();
+  $("footnote-remove").hidden = !attrs;
+  $("footnote-dialog").showModal();
+  $("footnote-text").focus();
 }
 
 // ---- Cite ----

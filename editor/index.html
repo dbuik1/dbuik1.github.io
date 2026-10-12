@@ -12,6 +12,9 @@
 </head>
 <body>
   <div class="site">
+    <!-- Shown on every screen when the latest version couldn't be fetched, or the editor itself changed -->
+    <div class="callout callout-warn sync-note" id="sync-note" role="status" hidden></div>
+
     <!-- Home: start a post or open one -->
     <main id="home" class="view">
       <header class="home-head">
@@ -112,6 +115,16 @@
           <span class="hint" id="publish-hint"></span>
         </span>
       </header>
+
+      <!-- What the site shows now, and whether this is a draft of changes to it -->
+      <div class="live-state" id="live-state" hidden>
+        <p id="live-line"></p>
+        <p class="live-actions" id="live-actions"></p>
+        <div class="live-version" id="live-version" hidden>
+          <p class="live-version-title" id="live-version-title"></p>
+          <div class="live-version-body" id="live-version-body"></div>
+        </div>
+      </div>
 
       <div class="callout" id="callout" role="status" hidden></div>
 

@@ -6,6 +6,7 @@ import { createServer as createHttpServer } from "node:http";
 import { readFile, writeFile, readdir, mkdir, unlink } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -102,10 +103,31 @@ async function openPost(file) {
   return { id, kind: "post", file, meta, body, updated: null };
 }
 
-// The level a published post has on the site, so the editor can say when publishing will move it.
-function withLiveLevel(doc) {
-  if ((doc.kind ?? "post") !== "post" || !doc.file || !existsSync(postPath(doc.file))) return doc;
-  return { ...doc, liveLevel: matter(readFileSync(postPath(doc.file), "utf8")).data.level ?? null };
+// ---- The live version ----
+
+const hash = (text) => createHash("sha1").update(text).digest("hex");
+
+function liveFile(kind, file) {
+  if (!file) return null;
+  const full = { post: postPath, fragment: fragmentPath, project: projectPath, text: texts.file }[kind ?? "post"](file);
+  return existsSync(full) ? full : null;
+}
+
+// Adds what the site shows now, so the editor can show it next to a draft.
+// `base` is the live file a draft started from; if the live file has changed
+// since (published from another computer, or edited on GitHub), publishing
+// the draft would overwrite that newer version.
+function withLive(doc) {
+  const kind = doc.kind ?? "post";
+  const full = liveFile(kind, doc.file);
+  if (!full) return doc;
+  const raw = readFileSync(full, "utf8");
+  const { data, content } = kind === "text" ? { data: {}, content: raw } : matter(raw);
+  const live = { title: data.title ?? null, body: content.replace(/^\n+/, "").trim(), hash: hash(raw) };
+  const out = { ...doc, live, base: doc.base ?? (doc.updated ? null : live.hash) };
+  if (kind === "post") out.liveLevel = data.level ?? null;
+  out.liveMoved = !!(doc.updated && doc.base && doc.base !== live.hash);
+  return out;
 }
 
 // ---- Fragments ----
@@ -167,6 +189,18 @@ async function openProject(slug) {
 
 // ---- Site text ----
 
+// Each text with the start of what the site shows now, and whether it has unpublished changes.
+async function listTexts() {
+  return texts.texts.map((t) => {
+    const current = texts.read(t.name).replace(/\s+/g, " ");
+    return {
+      name: t.name,
+      preview: current.length > 90 ? `${current.slice(0, 90).replace(/\s\S*$/, "")}…` : current,
+      draft: existsSync(draftPath(`text-${t.name}`)),
+    };
+  });
+}
+
 async function openText(name) {
   if (!texts.texts.some((t) => t.name === name)) throw new UserError("There's no site text with that name.");
   const id = `text-${name}`;
@@ -175,10 +209,10 @@ async function openText(name) {
   return { id, kind: "text", file: name, meta: {}, body: texts.read(name), updated: null };
 }
 
-async function saveDraft({ id, kind, file, meta, body }) {
+async function saveDraft({ id, kind, file, meta, body, base }) {
   await mkdir(DRAFTS, { recursive: true });
   const draftId = id || `${slugify(meta?.title || "untitled") || "untitled"}-${Date.now().toString(36)}`;
-  const draft = { id: draftId, kind: kind ?? "post", file: file ?? null, meta, body, updated: new Date().toISOString() };
+  const draft = { id: draftId, kind: kind ?? "post", file: file ?? null, base: base ?? null, meta, body, updated: new Date().toISOString() };
   await writeFile(draftPath(draftId), JSON.stringify(draft, null, 2));
   return draft;
 }
@@ -228,7 +262,8 @@ function checkMeta(meta) {
 
 // ---- Publishing ----
 
-const git = async (...args) => (await run("git", args, { cwd: ROOT })).stdout.trim();
+// GIT_TERMINAL_PROMPT=0: a missing login fails with a message instead of waiting for input nobody sees.
+const git = async (...args) => (await run("git", args, { cwd: ROOT, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } })).stdout.trim();
 
 // Eleventy's own error lines, without the stack trace.
 function buildError(e) {
@@ -344,6 +379,43 @@ async function commitAndPush(paths, message) {
     return { pushed: false, pushError: (e.stderr || e.message).trim() };
   }
 }
+
+// The editor reads the files on this computer, so it fetches the latest
+// version of the site from GitHub before listing or opening anything; otherwise
+// it would show text that has since been changed elsewhere. At most every 20
+// seconds, and never fatal: offline, it carries on with what's here.
+const sync = { at: 0, error: null, editorChanged: false, running: null };
+const EDITOR_CODE = /^(editor\/|lib\/|src\/_data\/|package(-lock)?\.json$)/;
+
+async function syncSite() {
+  if (sync.running) return sync.running;
+  if (Date.now() - sync.at < 20000) return sync;
+  sync.running = (async () => {
+    try {
+      const branch = await git("rev-parse", "--abbrev-ref", "HEAD");
+      if (branch !== "main") {
+        sync.error = `The site folder is on the branch “${branch}”, so the latest version wasn't fetched.`;
+        return sync;
+      }
+      await git("fetch", "--quiet");
+      const before = await git("rev-parse", "HEAD");
+      if (Number(await git("rev-list", "--count", "HEAD..@{u}"))) {
+        await git("pull", "--rebase", "--autostash", "--quiet");
+        const changed = (await git("diff", "--name-only", before, "HEAD")).split("\n");
+        if (changed.some((f) => EDITOR_CODE.test(f))) sync.editorChanged = true;
+      }
+      sync.error = null;
+    } catch (e) {
+      sync.error = `Couldn't fetch the latest version from GitHub, so this shows the copy on this computer. ${(e.stderr || e.message).trim()}`;
+    } finally {
+      sync.at = Date.now();
+      sync.running = null;
+    }
+    return sync;
+  })();
+  return sync.running;
+}
+const syncState = () => ({ error: sync.error, editorChanged: sync.editorChanged });
 
 async function readyToPublish() {
   const branch = await git("rev-parse", "--abbrev-ref", "HEAD");
@@ -539,17 +611,19 @@ async function readJson(req) {
 
 const routes = {
   "GET /api/meta": () => meta(),
-  "GET /api/list": async () => ({
+  "GET /api/list": async () => (await syncSite(), {
+    sync: syncState(),
+    texts: await listTexts(),
     drafts: await listDrafts(),
     posts: await listPosts(),
     fragments: await listFragments(),
     projects: await listProjects(),
   }),
-  "GET /api/fragment": async (_b, q) => openFragment(q.get("file")),
-  "GET /api/project": async (_b, q) => openProject(q.get("slug")),
-  "GET /api/text": async (_b, q) => openText(q.get("name")),
-  "GET /api/draft": async (_b, q) => withLiveLevel(JSON.parse(await readFile(draftPath(q.get("id")), "utf8"))),
-  "GET /api/post": async (_b, q) => withLiveLevel(await openPost(q.get("file"))),
+  "GET /api/fragment": async (_b, q) => (await syncSite(), withLive(await openFragment(q.get("file")))),
+  "GET /api/project": async (_b, q) => (await syncSite(), withLive(await openProject(q.get("slug")))),
+  "GET /api/text": async (_b, q) => (await syncSite(), withLive(await openText(q.get("name")))),
+  "GET /api/draft": async (_b, q) => (await syncSite(), withLive(JSON.parse(await readFile(draftPath(q.get("id")), "utf8")))),
+  "GET /api/post": async (_b, q) => (await syncSite(), withLive(await openPost(q.get("file")))),
   "POST /api/draft": (b) => saveDraft(b),
   "POST /api/draft/delete": async (b) => (await unlink(draftPath(b.id)).catch(() => {}), { ok: true }),
   "POST /api/passage": async (b) => {

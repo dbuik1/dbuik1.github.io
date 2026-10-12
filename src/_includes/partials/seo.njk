@@ -1,0 +1,60 @@
+{#- What search engines, AI crawlers and link previews read about this page. -#}
+{%- set seoKind = page.inputPath | pageKind %}
+{%- set lvl = levels | byField("slug", level) | first if seoKind == "post" else null %}
+{%- set st = statuses | byField("slug", status) | first if seoKind == "project" else null %}
+{%- if description %}{% set seoDescription = description | clip %}
+{%- elif summary %}{% set seoDescription = summary | clip %}
+{%- elif page.url == "/" %}{% set seoDescription = "home-about" | siteText | excerpt %}
+{%- elif seoKind == "fragment" %}{% set seoDescription = (title + (" – " + by if by else "")) | clip %}
+{%- elif seoKind != "page" %}{% set seoDescription = content | excerpt %}
+{%- endif %}
+{%- set seoDescription = seoDescription or site.description %}
+{%- set seoTitle = site.title if page.url == "/" else (title or site.title) %}
+{%- set seoImage = site.url + (seoKind | cardUrl(page.url)) %}
+{%- set seoModified = page.inputPath | modified(page.date) if seoKind != "page" else null %}
+  <meta name="description" content="{{ seoDescription }}">
+  <meta name="author" content="{{ site.author }}">
+  {%- if noindex %}
+  <meta name="robots" content="noindex, follow">
+  {%- else %}
+  <meta name="robots" content="max-image-preview:large, max-snippet:-1">
+  {%- endif %}
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}">
+  <meta property="og:site_name" content="{{ site.title }}">
+  <meta property="og:locale" content="{{ site.locale }}">
+  <meta property="og:type" content="{{ 'article' if seoKind == 'post' else 'website' }}">
+  <meta property="og:title" content="{{ seoTitle }}">
+  <meta property="og:description" content="{{ seoDescription }}">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+  <meta property="og:image" content="{{ seoImage }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ seoTitle }}">
+  <meta name="twitter:card" content="summary_large_image">
+  {%- if seoKind == "post" %}
+  <meta property="article:published_time" content="{{ page.date | isoDateTime }}">
+  {%- if seoModified %}
+  <meta property="article:modified_time" content="{{ seoModified | isoDateTime }}">
+  {%- endif %}
+  <meta property="article:author" content="{{ site.url }}/">
+  {%- if lvl %}
+  <meta property="article:section" content="{{ lvl.name }}">
+  {%- endif %}
+  {%- for tag in tags %}
+  <meta property="article:tag" content="{{ tag | replace('/', ' / ') }}">
+  {%- endfor %}
+  {%- endif %}
+  {%- for p in site.profiles %}
+  <link rel="me" href="{{ p.url }}">
+  {%- endfor %}
+  {%- set ld = {
+    kind: seoKind, url: page.url, title: seoTitle, description: seoDescription, image: seoImage,
+    date: page.date, modified: seoModified, tags: tags,
+    section: (lvl.name if lvl else (st.name if st else null)),
+    sectionUrl: ("/blog/" + lvl.slug + "/" if lvl else null),
+    wordCount: (content | wordCount if seoKind == "post" else null),
+    by: by, source: (source | fragmentSource | plain if source and seoKind == "fragment" else null)
+  } | structuredData %}
+  {%- if ld %}
+  <script type="application/ld+json">{{ ld | safe }}</script>
+  {%- endif %}

@@ -1,0 +1,18 @@
+---
+permalink: /robots.txt
+eleventyExcludeFromCollections: true
+---
+{%- set trainingBots = ["GPTBot", "ClaudeBot", "CCBot", "Google-Extended", "Applebot-Extended", "meta-externalagent", "Bytespider"] -%}
+# Everyone may read this site, including search engines and the AI assistants
+# that look pages up to answer questions and link back to them.
+{%- if not site.allowAiTraining %}
+# Crawlers that only collect text to train AI models are asked to stay away.
+{%- for bot in trainingBots %}
+User-agent: {{ bot | safe }}
+{%- endfor %}
+Disallow: /
+{% endif %}
+User-agent: *
+Allow: /
+
+Sitemap: {{ site.url }}/sitemap.xml

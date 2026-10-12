@@ -3,10 +3,12 @@ layout: layouts/page.njk
 pagination:
   data: collections.fragmentKinds
   size: 1
+  addAllPagesToCollections: true
   alias: kind
 permalink: "{{ kind.url }}"
 eleventyComputed:
   title: "Fragments: {{ kind.name }}"
+  description: "Fragments of the kind “{{ kind.name }}” kept by David Buik."
 ---
 <nav class="filters" aria-label="Kinds of fragment">
   <a href="/fragments/">All</a>

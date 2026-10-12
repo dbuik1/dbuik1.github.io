@@ -1,6 +1,8 @@
 ---
 layout: layouts/page.njk
 title: Research levels
+eleventyComputed:
+  description: "{{ ('levels-intro' | siteText | excerpt) or 'What the research levels on David Buik’s site mean.' }}"
 permalink: /levels/
 ---
 {{ "levels-intro" | siteText | safe }}

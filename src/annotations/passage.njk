@@ -3,6 +3,7 @@ layout: layouts/page.njk
 pagination:
   data: collections.annotations
   size: 1
+  addAllPagesToCollections: true
   alias: passage
 permalink: "/annotations/{{ passage.key }}/"
 eleventyComputed:

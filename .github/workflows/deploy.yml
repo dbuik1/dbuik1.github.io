@@ -40,3 +40,18 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Tell Bing (which also feeds ChatGPT search, Copilot and DuckDuckGo) and the
+  # other IndexNow engines about the pages this push changed.
+  indexnow:
+    needs: deploy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/indexnow.js "${{ github.event.before }}" "${{ github.sha }}"

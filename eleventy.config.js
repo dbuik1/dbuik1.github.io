@@ -9,7 +9,7 @@ import * as texts from "./lib/texts.js";
 import * as xref from "./lib/xref.js";
 import * as tags from "./lib/tags.js";
 import * as graph from "./lib/graph.js";
-import * as fragments from "./lib/fragments.js";
+import * as notes from "./lib/notes.js";
 import * as seo from "./lib/seo.js";
 import * as cards from "./lib/cards.js";
 import { isPreview } from "./lib/preview.js";
@@ -50,12 +50,12 @@ const allProjects = (api) => {
   return projects.sort((a, b) => a.data.title.localeCompare(b.data.title));
 };
 
-const fragmentsGlob = "src/fragments/*.md";
-const allFragments = (api) => {
-  const items = api.getFilteredByGlob(fragmentsGlob);
+const notesGlob = "src/notes/*.md";
+const allNotes = (api) => {
+  const items = api.getFilteredByGlob(notesGlob);
   for (const item of items) {
-    const problems = fragments.problems(item.data);
-    if (problems.length) throw new Error(`Fragment ${item.inputPath}: ${problems.join("; ")}`);
+    const problems = notes.problems(item.data);
+    if (problems.length) throw new Error(`Note ${item.inputPath}: ${problems.join("; ")}`);
   }
   return items.reverse();
 };
@@ -128,12 +128,12 @@ export default function (eleventyConfig) {
     return posts;
   });
   eleventyConfig.addCollection("projects", allProjects);
-  eleventyConfig.addCollection("fragments", allFragments);
-  eleventyConfig.addCollection("fragmentKinds", (api) => fragments.kinds(allFragments(api)));
-  // slug → posts, projects and fragments that link to it with [[slug]], newest first.
+  eleventyConfig.addCollection("notes", allNotes);
+  eleventyConfig.addCollection("noteKinds", (api) => notes.kinds(allNotes(api)));
+  // slug → posts, projects and notes that link to it with [[slug]], newest first.
   eleventyConfig.addCollection("backlinks", (api) => {
     const map = {};
-    for (const post of [...allPosts(api), ...allProjects(api), ...allFragments(api)]) {
+    for (const post of [...allPosts(api), ...allProjects(api), ...allNotes(api)]) {
       for (const slug of new Set(xref.linksIn(readFileSync(post.inputPath, "utf8")))) (map[slug] ??= []).push(post);
     }
     return map;
@@ -141,7 +141,7 @@ export default function (eleventyConfig) {
   for (const slug of levelSlugs) {
     eleventyConfig.addCollection(`level-${slug}`, (api) => allPosts(api).filter((p) => p.data.level === slug));
   }
-  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allFragments(api)]));
+  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allNotes(api)]));
 
   // {% annotate "wcf 1.4", "exact phrase", "qualified" %}Your note{% endannotate %}
   eleventyConfig.addPairedShortcode("annotate", function (note, ref, phrase, stance) {
@@ -159,7 +159,7 @@ export default function (eleventyConfig) {
     graph.build({
       posts: allPosts(api),
       projects: allProjects(api),
-      fragments: allFragments(api),
+      notes: allNotes(api),
       passages: annotations.collect(allPosts(api)),
       levels,
     })
@@ -187,7 +187,7 @@ export default function (eleventyConfig) {
       { url: "/", title: intro || site.title, label: "" },
       ...allPosts(api).map((p) => ({ url: p.url, title: p.data.title, label: levelName[p.data.level] })),
       ...allProjects(api).map((p) => ({ url: p.url, title: p.data.title, label: ["Project", statusName[p.data.status]].filter(Boolean).join(" · ") })),
-      ...allFragments(api).map((f) => ({ url: f.url, title: f.data.title, label: ["Fragment", f.data.kind].filter(Boolean).join(" · "), credit: f.data.by, quote: Boolean(f.data.by) })),
+      ...allNotes(api).map((f) => ({ url: f.url, title: f.data.title, label: ["Note", f.data.kind].filter(Boolean).join(" · "), credit: f.data.by, quote: Boolean(f.data.by) })),
     ].filter((c) => c.url);
     return shareCards;
   });
@@ -208,11 +208,11 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("withTag", tags.withTag);
   eleventyConfig.addFilter("tagUrl", tags.url);
   eleventyConfig.addFilter("byKind", (items, kind) => items.filter((f) => f.data.kind === kind));
-  eleventyConfig.addFilter("fragmentSource", function (text) {
+  eleventyConfig.addFilter("noteSource", function (text) {
     try {
-      return fragments.source(text);
+      return notes.source(text);
     } catch (e) {
-      throw new Error(`Fragment ${this.page?.inputPath ?? ""}: ${e.message}`);
+      throw new Error(`Note ${this.page?.inputPath ?? ""}: ${e.message}`);
     }
   });
   eleventyConfig.addFilter("linkedTo", (links, id) =>
@@ -241,9 +241,9 @@ export default function (eleventyConfig) {
   });
   eleventyConfig.addPlugin(feedPlugin, {
     type: "atom",
-    outputPath: "/fragments/feed.xml",
-    collection: { name: "fragments", limit: 50 },
-    metadata: { ...feedMeta("Fragments"), title: `${site.title}: Fragments` },
+    outputPath: "/notes/feed.xml",
+    collection: { name: "notes", limit: 50 },
+    metadata: { ...feedMeta("Notes"), title: `${site.title}: Notes` },
   });
   for (const l of levels) {
     eleventyConfig.addPlugin(feedPlugin, {

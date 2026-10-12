@@ -2,12 +2,12 @@
 layout: layouts/base.njk
 ---
 {%- set f = { url: page.url, date: page.date, fileSlug: page.fileSlug, data: { title: title, kind: kind, by: by, source: source, draft: draft } } %}
-<article class="post fragment-page" data-pagefind-body>
-  <header class="fragment-header">
-    {%- set kindInfo = collections.fragmentKinds | byField("name", kind) | first %}
-    <p class="fragment-kicker"><a href="/fragments/">Fragments</a>{% if kindInfo %} · <a href="{{ kindInfo.url }}">{{ kind }}</a>{% endif %}</p>
-    <h1 class="fragment-line">{{ title }}</h1>
-    {%- include "partials/fragment-credit.njk" %}
+<article class="post note-page" data-pagefind-body>
+  <header class="note-header">
+    {%- set kindInfo = collections.noteKinds | byField("name", kind) | first %}
+    <p class="note-kicker"><a href="/notes/">Notes</a>{% if kindInfo %} · <a href="{{ kindInfo.url }}">{{ kind }}</a>{% endif %}</p>
+    <h1 class="note-line">{{ title }}</h1>
+    {%- include "partials/note-credit.njk" %}
     <span class="post-meta"><time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time>{% if draft %}<span class="draft">Draft</span>{% endif %}</span>
   </header>
   {%- if content | striptags | trim %}

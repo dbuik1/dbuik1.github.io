@@ -276,7 +276,7 @@ select, .details input, .more input, .picker input, .picker textarea {
 
 .level-hint { flex-basis: 100%; margin: 0; }
 
-/* Quick fragment form on the home screen */
+/* Quick note form on the home screen */
 .quick-form { display: grid; gap: 0.4rem; margin: 1.5rem 0 0; font-family: var(--font-label); }
 .quick-form > label { font-weight: 500; }
 .quick-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }

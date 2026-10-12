@@ -1,3 +1,5 @@
+import levels from "./levels.js";
+
 export default {
   title: "David Buik",
   description: "Personal website of David Buik.",
@@ -19,8 +21,17 @@ export default {
   // Sections are added here as they are built.
   nav: [
     { label: "Home", url: "/" },
-    { label: "Writing", url: "/blog/" },
-    { label: "Fragments", url: "/fragments/" },
+    // Writing opens a short menu: every post, each research level, and notes,
+    // which are kept to build on rather than read through, so they sit one step down.
+    {
+      label: "Writing",
+      url: "/blog/",
+      children: [
+        { label: "All writing", url: "/blog/" },
+        ...levels.map((l) => ({ label: l.name, url: `/blog/${l.slug}/` })),
+        { label: "Notes", url: "/notes/" },
+      ],
+    },
     { label: "Projects", url: "/projects/" },
     { label: "Graph", url: "/graph/" },
     { label: "Search", url: "/search/" },

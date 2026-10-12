@@ -1,0 +1,18 @@
+{#- Expects `noteList`. -#}
+{%- if noteList | length %}
+<ul class="note-list">
+  {%- for f in noteList %}
+  <li class="note{% if f.data.by or f.data.source %} is-quote{% endif %}">
+    <a class="note-line" href="{{ f.url }}">{{ f.data.title }}</a>
+    {%- include "partials/note-credit.njk" %}
+    <span class="note-meta">
+      {%- if f.data.kind %}{% set k = collections.noteKinds | byField("name", f.data.kind) | first %}<a href="{{ k.url }}">{{ f.data.kind }}</a> · {% endif -%}
+      <time datetime="{{ f.date | isoDate }}">{{ f.date | readableDate }}</time>
+      {%- if f.data.draft %} · <span class="draft">Draft</span>{% endif %}
+    </span>
+  </li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="empty">No notes yet.</p>
+{%- endif %}

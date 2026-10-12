@@ -21,7 +21,22 @@
       <nav aria-label="Main">
         <ul>
           {%- for item in site.nav %}
+          {%- if item.children %}
+          {%- set inside = false %}
+          {%- for child in item.children %}{% if page.url.startsWith(child.url) %}{% set inside = true %}{% endif %}{% endfor %}
+          <li>
+            <details class="menu">
+              <summary{% if inside %} class="is-current"{% endif %}>{{ item.label }}</summary>
+              <ul>
+                {%- for child in item.children %}
+                <li><a href="{{ child.url }}"{% if child.url == page.url %} aria-current="page"{% endif %}>{{ child.label }}</a></li>
+                {%- endfor %}
+              </ul>
+            </details>
+          </li>
+          {%- else %}
           <li><a href="{{ item.url }}"{% if item.url == page.url or (item.url != "/" and page.url.startsWith(item.url)) %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
+          {%- endif %}
           {%- endfor %}
         </ul>
       </nav>
@@ -41,6 +56,20 @@
       </nav>
     </footer>
   </div>
+  <script>
+    // Menus close on Escape, on a click elsewhere, and when another one opens.
+    (function () {
+      var menus = document.querySelectorAll("details.menu");
+      function closeAll(except) { menus.forEach(function (m) { if (m !== except) m.open = false; }); }
+      menus.forEach(function (m) { m.addEventListener("toggle", function () { if (m.open) closeAll(m); }); });
+      document.addEventListener("click", function (e) { if (!e.target.closest("details.menu")) closeAll(); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape") return;
+        var open = document.querySelector("details.menu[open]");
+        if (open) { open.open = false; open.querySelector("summary").focus(); }
+      });
+    })();
+  </script>
   {%- if 'class="xref"' in content %}
   <script src="/js/xref.js" defer></script>
   {%- endif %}

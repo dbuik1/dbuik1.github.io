@@ -27,6 +27,8 @@ npm run write    # then open http://127.0.0.1:8081/
 - **Cross-link** (or typing `[[`) links to another post or project. Pick it, then optionally select exact words in it to link to just those; selected text in your post becomes the link text. Readers get a preview card on hover, focus or tap, and clicking opens the linked page over the current one, with Back (or Esc) returning to where they were. Each post lists the posts that link to it under "Linked from".
 - **Annotate** adds an annotation after the paragraph you're in. Choose the Westminster Confession, the Scots Confession or the Bible, find the passage (or search for it), then select the words you're annotating. It only accepts words that appear once in the passage, so annotations can't break the build.
 - **Add a note** on the home screen publishes a note straight away: a single piece of knowledge, a fact or a quote, in one line. Give it a kind if you like (any word, such as quote or question; each kind gets its own page), tags, and under **Who said it** a name and source. The source can be a citation from your reference library, like `[@calvin1559, 1.1.1]`. Open a note from the Notes list to add a comment below it.
+- **Add a visual** (under Visuals on the home screen) adds an animation, simulation or interactive diagram from an HTML file, such as one Claude made for you. Drop the file in; the editor checks that it works on its own (nothing loaded from other websites, under 2 MB) and shows it running. Give it a title and a text description saying what it shows, for people who can't see or run it; your introduction above it is optional. Publishing also takes a still image of it with the Edge or Chrome on your computer.
+- **Visual** in the toolbar places a visual after the paragraph you're in, with an optional caption. To make a post about one visual, choose it under **More details → Visual at the top**.
 - Tags can be nested with a slash, like `theology/church`. The suggestions include every tag already in use.
 - When you publish a live post at a different research level, the post shows the date it reached that level ("Explored since 10 November 2026"). The editor says so before you publish.
 - Drafts save automatically into `drafts/` on your computer. That folder is never committed, so drafts stay private until you publish.
@@ -36,7 +38,7 @@ npm run write    # then open http://127.0.0.1:8081/
 - **More** has superscript, subscript, tables and HTML blocks. Inside a table, a row of table buttons appears (add or delete rows and columns, delete the table).
 - HTML is kept exactly as written. A block of HTML shows as a card with a live preview, and HTML inside a sentence (an `<abbr>`, a `<span>`) as a chip; click either, or press Enter on it, to edit the code.
 - **Source** switches to the post as plain Markdown and HTML, and **Rich text** switches back. If the formatted view can't hold something in a post (a code block, for example), the post opens in Source with a note saying so, and switching back asks first.
-- **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, the colophon, the introductions to the research levels and notes, each level's description, and projects. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
+- **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, the colophon, the introductions to the research levels, notes and visuals, each level's description, and projects. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
 - **Reference library** lists your sources. Add one by pasting a DOI, an ISBN or a BibTeX entry. To bring in sources from Zotero, export them as BibTeX (the Better BibTeX add-on gives stable keys) and import the file; entries with the same key are replaced. Library changes are published with your next post, or straight away with **Publish library**.
 
 The rest of this section describes the file format the editor writes, for editing by hand.
@@ -109,7 +111,7 @@ A footnote is `^[The note text.]` straight after the word it belongs to. A citat
 
 ### Cross-links
 
-`[[on-scripture]]` links to the post at `/blog/on-scripture/` (or the project or note with that name), using its title as the link text. `[[on-scripture|my earlier post]]` sets the link text, and `[[on-scripture#"exact words"|this point]]` links to those words, which are highlighted when the link is followed. The build stops if the target doesn't exist, is still a draft, or doesn't contain the words exactly once.
+`[[on-scripture]]` links to the post at `/blog/on-scripture/` (or the project, note or visual with that name), using its title as the link text. `[[on-scripture|my earlier post]]` sets the link text, and `[[on-scripture#"exact words"|this point]]` links to those words, which are highlighted when the link is followed. The build stops if the target doesn't exist, is still a draft, or doesn't contain the words exactly once.
 
 
 ### Notes
@@ -130,7 +132,36 @@ An optional comment.
 
 Only `title` (the note in one line) is required. `kind` is any word; each kind gets a page at `/notes/kinds/<kind>/`. `source` can be plain text or a citation from the library, like `[@calvin1559, 1.1.1]`. Notes share tags with posts and can be cross-linked with `[[short-name]]`.
 
-The **Graph** page draws every post, note, project, tag and annotated passage, with lines for cross-links, tags and annotations.
+The **Graph** page draws every post, note, project, visual, tag and annotated passage, with lines for cross-links, tags, placed visuals and annotations.
+
+### Visuals
+
+A visual is an animation, simulation or interactive diagram: one self-contained HTML file with its script and style inside, the kind Claude makes as an artifact. Visuals sit under **Writing → Visuals** (the menu shows it once there is one). Each is a folder in `src/visuals/`, published at `/visuals/<folder>/`:
+
+```
+src/visuals/typing-into-embedding-space/
+  index.md      title, description and tags; below them, your introduction (optional)
+  visual.html   the visual itself
+  poster.png    optional still image, shown in posts before the visual runs
+```
+
+```markdown
+---
+title: Typing into embedding space
+description: Words become arrows on a map of meanings. The arrows add up to where the prompt sits, and the closest words are the likely next ones.
+tags: [ai/language-models]
+---
+```
+
+`description` is required: it is the text alternative for people who can't see or run the visual, shown under it as "Text description".
+
+Use a visual in three ways:
+
+- On its own page, where it runs straight away, with your introduction above it and a list of the writing that uses it.
+- As the subject of a post: add `visual: typing-into-embedding-space` to the post's front matter and it appears under the title.
+- Inside any post, project or note: `{% visual "typing-into-embedding-space" %}`, or with a caption, `{% visual "typing-into-embedding-space", "Your caption" %}`.
+
+In writing, a visual shows its still image and a **Run** button, and nothing of it loads until a reader presses it. It runs in a sandboxed frame, so it can't read the page around it, and it can't load anything from other websites. A library it needs (three.js, D3, p5) is served from `/js/vendor/` on this site instead. The build stops if a visual has no description, loads something from elsewhere, is over 2 MB, or if writing places a visual that doesn't exist.
 
 ## Annotating a passage
 
@@ -193,8 +224,9 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/_includes/layouts/base.njk` | The page shell shared by every page |
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
-| `src/_text/` | Site text edited in the editor: home introduction and paragraph, colophon, introductions to research levels and notes, level descriptions |
+| `src/_text/` | Site text edited in the editor: home introduction and paragraph, colophon, introductions to research levels, notes and visuals, level descriptions |
 | `src/notes/`, `lib/notes.js` | Notes, their pages and kinds |
+| `src/visuals/`, `lib/visuals.js`, `src/js/visuals.js` | Visuals: their folders and pages, the `{% visual %}` shortcode and its checks, and the Run button and sandboxed frame |
 | `src/graph.njk`, `lib/graph.js`, `src/js/graph.js` | The Graph page: the site's connections, drawn with [d3-force](https://d3js.org/d3-force) |
 | `src/images/` | Images used in posts and projects |
 | `references/` | The reference library (`library.bib`), the Chicago notes citation style and its British English locale (both from the [Citation Style Language](https://citationstyles.org) project, CC BY-SA 3.0) |
@@ -207,15 +239,15 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `texts/` | Confession and Bible texts that posts can annotate |
 | `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
 | `src/annotations/` | The annotated passages pages |
-| `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, projects, site text, images and the reference library; the rest is the page |
+| `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, projects, notes, visuals, site text, images and the reference library; the rest is the page |
 | `tools/chokidar-globs/` | A small stand-in for the file watcher behind `npm start`, so the project has no known security warnings. Leave it in place |
 | `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts and projects after each build |
 | `src/_data/levels.js`, `statuses.js` | Research level and project status names |
 | `lib/tags.js` | Nested tags: their pages, counts and checks |
-| `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |
+| `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project`, `note`, `visual` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |
 | `lib/seo.js`, `src/_includes/partials/seo.njk` | What search engines and AI crawlers read about each page: descriptions, dates, structured data |
-| `lib/cards.js` | Share images (`card.png` beside each post, project and note) |
+| `lib/cards.js` | Share images (`card.png` beside each post, project, note and visual) |
 | `src/robots.njk`, `src/sitemap.njk`, `src/llms.njk` | `/robots.txt`, `/sitemap.xml` and `/llms.txt` |
 | `tools/indexnow.js` | Tells Bing about changed pages after each deploy |
 

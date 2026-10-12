@@ -29,7 +29,9 @@
               <summary{% if inside %} class="is-current"{% endif %}>{{ item.label }}</summary>
               <ul>
                 {%- for child in item.children %}
+                {%- if not child.hideWhenEmpty or collections[child.hideWhenEmpty] | length %}
                 <li><a href="{{ child.url }}"{% if child.url == page.url %} aria-current="page"{% endif %}>{{ child.label }}</a></li>
+                {%- endif %}
                 {%- endfor %}
               </ul>
             </details>
@@ -70,6 +72,9 @@
       });
     })();
   </script>
+  {%- if 'class="visual' in content %}
+  <script src="/js/visuals.js" defer></script>
+  {%- endif %}
   {%- if 'class="xref"' in content %}
   <script src="/js/xref.js" defer></script>
   {%- endif %}

@@ -1,5 +1,5 @@
-// The graph page: every post, note, project, tag and annotated passage as a
-// dot, with lines for cross-links, tags, project links and annotations.
+// The graph page: every post, note, project, visual, tag and annotated passage as a
+// dot, with lines for cross-links, tags, project links, placed visuals and annotations.
 // Drag the background to move, scroll or pinch to zoom, drag a dot to pull it,
 // and select a dot (click, tap or Enter) to open it. Hovering or focusing a dot
 // highlights it and its neighbours. The list under the drawing has the same
@@ -10,7 +10,7 @@
   if (!root || !svg || !window.d3 || !d3.forceSimulation) return;
 
   const NS = "http://www.w3.org/2000/svg";
-  const KIND_NAMES = { post: "Post", project: "Project", tag: "Tag", passage: "Annotated passage", note: "Note" };
+  const KIND_NAMES = { post: "Post", project: "Project", tag: "Tag", passage: "Annotated passage", note: "Note", visual: "Visual" };
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const el = (name, attrs = {}) => {
     const node = document.createElementNS(NS, name);
@@ -21,7 +21,7 @@
   let data;
   let sim;
   let view = { x: 0, y: 0, k: 1 };
-  const shown = new Set(["post", "project", "tag", "passage", "note"]);
+  const shown = new Set(["post", "project", "tag", "passage", "note", "visual"]);
   const scene = el("g");
   const linkLayer = el("g", { class: "graph-links" });
   const nodeLayer = el("g", { class: "graph-nodes" });

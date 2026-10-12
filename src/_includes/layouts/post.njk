@@ -18,6 +18,10 @@ layout: layouts/base.njk
     {%- endif %}
   </header>
 
+  {%- if visual %}
+  {{ visual | visualFigure | safe }}
+  {%- endif %}
+
   {%- if series %}
   {%- set parts = collections.posts | inSeries(series) %}
   <nav class="series" aria-label="Series">

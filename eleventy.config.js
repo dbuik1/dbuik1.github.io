@@ -12,6 +12,7 @@ import * as graph from "./lib/graph.js";
 import * as notes from "./lib/notes.js";
 import * as seo from "./lib/seo.js";
 import * as cards from "./lib/cards.js";
+import * as visuals from "./lib/visuals.js";
 import { isPreview } from "./lib/preview.js";
 import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
@@ -60,6 +61,16 @@ const allNotes = (api) => {
   return items.reverse();
 };
 
+const visualsGlob = "src/visuals/*/index.md";
+const allVisuals = (api) => {
+  const items = api.getFilteredByGlob(visualsGlob);
+  for (const item of items) {
+    const problems = visuals.check(item.fileSlug, item.data);
+    if (problems.length) throw new Error(`Visual src/visuals/${item.fileSlug}/: ${problems.join("; ")}`);
+  }
+  return items.sort((a, b) => b.date - a.date);
+};
+
 const postsGlob = "src/blog/*.md";
 const allPosts = (api) => {
   const posts = api.getFilteredByGlob(postsGlob);
@@ -77,6 +88,16 @@ export default function (eleventyConfig) {
   for (const name of ["d3-dispatch", "d3-quadtree", "d3-timer", "d3-force"]) {
     eleventyConfig.addPassthroughCopy({ [`node_modules/${name}/dist/${name}.min.js`]: `js/vendor/${name}.min.js` });
   }
+
+  // Visuals: the HTML file is served as it is, with the frame's security policy
+  // added after the build; posters and any data files beside it are copied.
+  eleventyConfig.ignores.add("src/visuals/*/*.html");
+  eleventyConfig.addPassthroughCopy("src/visuals/*/*.{png,jpg,jpeg,webp,svg,json,csv,txt,js,css,glb,gltf,bin,wasm}");
+  for (const [weight, style] of [["400", "normal"], ["400", "italic"], ["500", "normal"], ["700", "normal"]]) {
+    const name = `alegreya-sans-latin-${weight}-${style}.woff2`;
+    eleventyConfig.addPassthroughCopy({ [`node_modules/@fontsource/alegreya-sans/files/${name}`]: `fonts/${name}` });
+  }
+  eleventyConfig.addWatchTarget("./src/visuals/");
 
   eleventyConfig.addWatchTarget("./lib/");
   eleventyConfig.addWatchTarget("./texts/");
@@ -125,15 +146,19 @@ export default function (eleventyConfig) {
         );
       }
     }
+    visuals.checkUses([...posts, ...allProjects(api), ...allNotes(api)], new Set(allVisuals(api).map((v) => v.fileSlug)));
     return posts;
   });
   eleventyConfig.addCollection("projects", allProjects);
+  eleventyConfig.addCollection("visuals", allVisuals);
+  // slug → posts, projects and notes that show the visual.
+  eleventyConfig.addCollection("visualUses", (api) => visuals.uses([...allPosts(api), ...allProjects(api), ...allNotes(api)]));
   eleventyConfig.addCollection("notes", allNotes);
   eleventyConfig.addCollection("noteKinds", (api) => notes.kinds(allNotes(api)));
   // slug → posts, projects and notes that link to it with [[slug]], newest first.
   eleventyConfig.addCollection("backlinks", (api) => {
     const map = {};
-    for (const post of [...allPosts(api), ...allProjects(api), ...allNotes(api)]) {
+    for (const post of [...allPosts(api), ...allProjects(api), ...allNotes(api), ...allVisuals(api)]) {
       for (const slug of new Set(xref.linksIn(readFileSync(post.inputPath, "utf8")))) (map[slug] ??= []).push(post);
     }
     return map;
@@ -141,7 +166,24 @@ export default function (eleventyConfig) {
   for (const slug of levelSlugs) {
     eleventyConfig.addCollection(`level-${slug}`, (api) => allPosts(api).filter((p) => p.data.level === slug));
   }
-  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allNotes(api)]));
+  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allNotes(api), ...allVisuals(api)]));
+
+  // {% visual "slug" %} or {% visual "slug", "Your caption" %}: the visual with a Run button.
+  let visualsBySlug = new Map();
+  eleventyConfig.addCollection("visualsBySlug", (api) => (visualsBySlug = new Map(allVisuals(api).map((v) => [v.fileSlug, v]))));
+  const visualFigure = (slug, options) => {
+    const v = visualsBySlug.get(slug);
+    if (!v) throw new Error(`there's no visual called “${slug}” (or it is still a draft)`);
+    return visuals.figure({ slug, title: v.data.title, description: v.data.description }, options);
+  };
+  eleventyConfig.addShortcode("visual", function (slug, caption) {
+    try {
+      return visualFigure(slug, { caption });
+    } catch (e) {
+      throw new Error(`${this.page.inputPath}: ${e.message}`);
+    }
+  });
+  eleventyConfig.addFilter("visualFigure", (slug, live) => visualFigure(slug, { live }));
 
   // {% annotate "wcf 1.4", "exact phrase", "qualified" %}Your note{% endannotate %}
   eleventyConfig.addPairedShortcode("annotate", function (note, ref, phrase, stance) {
@@ -160,6 +202,7 @@ export default function (eleventyConfig) {
       posts: allPosts(api),
       projects: allProjects(api),
       notes: allNotes(api),
+      visuals: allVisuals(api),
       passages: annotations.collect(allPosts(api)),
       levels,
     })
@@ -179,6 +222,8 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("wordCount", (html) => seo.plain(html).split(" ").filter(Boolean).length);
   eleventyConfig.addFilter("isoDateTime", (date) => new Date(date).toISOString());
   let shareCards = [];
+  let visualSlugs = [];
+  eleventyConfig.addCollection("visualFiles", (api) => (visualSlugs = allVisuals(api).map((v) => v.fileSlug)));
   eleventyConfig.addCollection("shareCards", (api) => {
     const levelName = Object.fromEntries(levels.map((l) => [l.slug, l.name]));
     const statusName = Object.fromEntries(statuses.map((s) => [s.slug, s.name]));
@@ -188,12 +233,14 @@ export default function (eleventyConfig) {
       ...allPosts(api).map((p) => ({ url: p.url, title: p.data.title, label: levelName[p.data.level] })),
       ...allProjects(api).map((p) => ({ url: p.url, title: p.data.title, label: ["Project", statusName[p.data.status]].filter(Boolean).join(" · ") })),
       ...allNotes(api).map((f) => ({ url: f.url, title: f.data.title, label: ["Note", f.data.kind].filter(Boolean).join(" · "), credit: f.data.by, quote: Boolean(f.data.by) })),
+      ...allVisuals(api).map((v) => ({ url: v.url, title: v.data.title, label: "Visual" })),
     ].filter((c) => c.url);
     return shareCards;
   });
   eleventyConfig.on("eleventy.after", async ({ directories }) => {
     // A dry run (the editor's build check) writes nothing.
     if (process.argv.includes("--dryrun")) return;
+    visuals.write(directories.output, visualSlugs);
     await cards.write(directories.output, shareCards);
   });
 

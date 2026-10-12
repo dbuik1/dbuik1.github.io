@@ -1,0 +1,44 @@
+---
+layout: layouts/base.njk
+---
+<article class="post visual-page" data-pagefind-body>
+  <header class="post-header">
+    <p class="note-kicker"><a href="/visuals/">Visuals</a></p>
+    <h1>{{ title }}</h1>
+    {%- if draft %}<span class="post-meta"><span class="draft">Draft</span></span>{% endif %}
+  </header>
+
+  {%- if content | striptags | trim %}
+  <div class="post-body">
+    {{ content | safe }}
+  </div>
+  {%- endif %}
+
+  {{ page.fileSlug | visualFigure(true) | safe }}
+
+  {%- set usedBy = collections.visualUses[page.fileSlug] %}
+  {%- if usedBy and usedBy | length %}
+  <section class="backlinks" aria-labelledby="used-heading">
+    <h2 id="used-heading">Used in</h2>
+    <ul>
+      {%- for p in usedBy %}<li><a class="xref" data-xref="{{ p.fileSlug }}" href="{{ p.url }}">{{ p.data.title }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
+  {%- set linkers = collections.backlinks[page.fileSlug] %}
+  {%- if linkers and linkers | length %}
+  <section class="backlinks" aria-labelledby="backlinks-heading">
+    <h2 id="backlinks-heading">Linked from</h2>
+    <ul>
+      {%- for p in linkers %}<li><a class="xref" data-xref="{{ p.fileSlug }}" href="{{ p.url }}">{{ p.data.title }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
+  {%- if tags and tags | length %}
+  <p class="post-tags">Tags:
+    {%- for tag in tags %} <a href="{{ tag | tagUrl }}">{{ tag | replace("/", " / ") }}</a>{% if not loop.last %},{% endif %}{% endfor %}
+  </p>
+  {%- endif %}
+</article>

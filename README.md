@@ -64,7 +64,7 @@ Your post starts here.
 | `level` | Yes | `unexplored` (Unexplored), `explored` (Explored) or `researched` (Researched) |
 | `tags` | No | Any words, in square brackets, separated by commas. Nest them with a slash: `theology/church` also files the post under `theology` |
 | `history` | No | Written by the editor when a published post changes level: a list of `level` and `date` pairs. The post shows the date of the last one |
-| `description` | No | One line for link previews |
+| `description` | No | One line for search results and link previews. Left out, the post's first paragraph is used |
 | `series` | No | The same name on several posts links them as a numbered series |
 | `project` | No | A project's file name without `.md`, e.g. `example-project`; the post then shows on that project's page |
 | `draft` | No | `true` keeps the post off the live site; remove the line to publish |
@@ -189,7 +189,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 
 | Path | What it is |
 | --- | --- |
-| `src/_data/site.js` | Site title, description, URL, main and footer navigation |
+| `src/_data/site.js` | Site title, description, URL, main and footer navigation, your profiles elsewhere, and whether AI training crawlers are allowed |
 | `src/_includes/layouts/base.njk` | The page shell shared by every page |
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
@@ -214,6 +214,10 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `lib/tags.js` | Nested tags: their pages, counts and checks |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |
+| `lib/seo.js`, `src/_includes/partials/seo.njk` | What search engines and AI crawlers read about each page: descriptions, dates, structured data |
+| `lib/cards.js` | Share images (`card.png` beside each post, project and fragment) |
+| `src/robots.njk`, `src/sitemap.njk`, `src/llms.njk` | `/robots.txt`, `/sitemap.xml` and `/llms.txt` |
+| `tools/indexnow.js` | Tells Bing about changed pages after each deploy |
 
 Text in a grey box marked `[...]` is waiting to be written.
 
@@ -231,3 +235,20 @@ One-time setup:
    - `AAAA` records on the apex: `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`
    - `CNAME` record for `www`: `dbuik1.github.io`
 3. Once GitHub shows the DNS check as passing, tick **Enforce HTTPS** on the same Pages settings screen.
+
+## Search engines and AI
+
+Every build does this without anything to fill in:
+
+- **Descriptions.** Each post's `description` (or its first paragraph) becomes the snippet under the result and in link previews. Text still in a `[Placeholder: …]` box is never used.
+- **Structured data.** Posts are marked up as articles with author, dates, research level and tags; the home page says who you are and links your profiles from `profiles` in `src/_data/site.js`. Search engines and AI models use this to connect the writing to you.
+- **Share images.** Each post, project and fragment gets a 1200×630 `card.png` with its title in the site's type, shown when a link is shared.
+- **`/sitemap.xml`** lists every page with its last change, taken from the commit history. Tag pages and fragment kinds with a single item, the search page and the not-found page are kept out of search results.
+- **`/robots.txt`** lets every crawler in. Set `allowAiTraining: false` in `src/_data/site.js` to turn away crawlers that only collect training data; search and answer bots (Google, Bing, ChatGPT search, Claude, Perplexity) are allowed either way.
+- **`/llms.txt`** is a plain-text map of the writing for AI models and agents.
+- **IndexNow.** After each deploy, the pages that changed are sent to Bing, which also feeds ChatGPT search, Copilot and DuckDuckGo.
+
+One-time setup, done in the browser:
+
+1. **Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console)): add a **Domain** property for `davidbuik.com`, copy the `TXT` record it gives you into Porkbun DNS, verify, then under **Sitemaps** submit `sitemap.xml`.
+2. **Bing Webmaster Tools** ([bing.com/webmasters](https://www.bing.com/webmasters)): sign in and choose **Import from Google Search Console**. This also covers ChatGPT search, Copilot and DuckDuckGo.

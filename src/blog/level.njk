@@ -3,10 +3,12 @@ layout: layouts/page.njk
 pagination:
   data: levels
   size: 1
+  addAllPagesToCollections: true
   alias: lvl
 permalink: "/blog/{{ lvl.slug }}/"
 eleventyComputed:
   title: "{{ lvl.name }}"
+  description: "{{ (('level-' + lvl.slug) | siteText | excerpt) or ('Writing by David Buik marked ' + lvl.name + '.') }}"
 ---
 <div class="level-intro">{{ ("level-" + lvl.slug) | siteText | safe }}</div>
 <nav class="filters" aria-label="Research levels">

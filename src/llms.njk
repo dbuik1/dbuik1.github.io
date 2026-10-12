@@ -1,0 +1,47 @@
+---
+permalink: /llms.txt
+eleventyExcludeFromCollections: true
+---
+{#- A plain-text map of the site for AI models and agents, following https://llmstxt.org. -#}
+{%- set about = "home-about" | siteText | excerpt %}
+# {{ (site.title) | safe }}
+
+> {{ (about or site.description) | safe }}
+
+This is the personal website of {{ (site.author) | safe }}. Writing is grouped by research level, from least to most researched: {% for l in levels %}{{ (l.name) | safe }}{% if not loop.last %}, {% endif %}{% endfor %} ({{ (site.url) | safe }}/levels/).
+{%- for l in levels | reverse %}
+{%- set group = collections["level-" + l.slug] %}
+{%- if group | length %}
+
+## Writing: {{ (l.name) | safe }}
+
+{% for post in group -%}
+- [{{ (post.data.title) | safe }}]({{ (site.url) | safe }}{{ (post.url) | safe }}): {{ (post.data.description or (post.content | excerpt) or "No summary yet.") | safe }} ({{ (post.date | isoDate) | safe }})
+{% endfor -%}
+{%- endif %}
+{%- endfor %}
+{%- if collections.projects | length %}
+
+## Projects
+
+{% for p in collections.projects -%}
+{%- set st = statuses | byField("slug", p.data.status) | first -%}
+- [{{ (p.data.title) | safe }}]({{ (site.url) | safe }}{{ (p.url) | safe }}): {% if p.data.summary %}{{ (p.data.summary) | safe }} {% endif %}({{ (st.name) | safe }})
+{% endfor -%}
+{%- endif %}
+{%- if collections.fragments | length %}
+
+## Fragments
+
+{% for f in collections.fragments | head(50) -%}
+- [{{ (f.data.title | clip(100)) | safe }}]({{ (site.url) | safe }}{{ (f.url) | safe }}){% if f.data.by %}: {{ (f.data.by) | safe }}{% endif %}
+{% endfor -%}
+{%- endif %}
+
+## Optional
+
+- [All writing]({{ (site.url) | safe }}/blog/)
+- [Tags]({{ (site.url) | safe }}/tags/)
+- [Annotated confession and Bible passages]({{ (site.url) | safe }}/annotations/)
+- [Atom feed of all writing]({{ (site.url) | safe }}/feed.xml)
+- [Sitemap]({{ (site.url) | safe }}/sitemap.xml)

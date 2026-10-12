@@ -1,6 +1,8 @@
 ---
 layout: layouts/page.njk
 title: Fragments
+eleventyComputed:
+  description: "{{ ('fragments-intro' | siteText | excerpt) or 'One-line thoughts and quotes kept by David Buik.' }}"
 permalink: /fragments/
 ---
 {{ "fragments-intro" | siteText | safe }}

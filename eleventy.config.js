@@ -10,6 +10,8 @@ import * as xref from "./lib/xref.js";
 import * as tags from "./lib/tags.js";
 import * as graph from "./lib/graph.js";
 import * as fragments from "./lib/fragments.js";
+import * as seo from "./lib/seo.js";
+import * as cards from "./lib/cards.js";
 import { isPreview } from "./lib/preview.js";
 import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
@@ -164,6 +166,36 @@ export default function (eleventyConfig) {
   );
   eleventyConfig.addGlobalData("stances", annotations.stances);
   eleventyConfig.addFilter("stanceName", annotations.stanceName);
+
+  // Search engines and AI crawlers: descriptions, structured data, sitemap and share images.
+  eleventyConfig.addFilter("excerpt", seo.excerpt);
+  eleventyConfig.addFilter("clip", (text, max) => seo.clip(text, max));
+  eleventyConfig.addFilter("plain", seo.plain);
+  eleventyConfig.addFilter("pageKind", seo.kind);
+  eleventyConfig.addFilter("cardUrl", seo.cardUrl);
+  eleventyConfig.addFilter("modified", seo.modified);
+  eleventyConfig.addFilter("structuredData", seo.structuredData);
+  eleventyConfig.addFilter("sitemapEntries", seo.sitemap);
+  eleventyConfig.addFilter("wordCount", (html) => seo.plain(html).split(" ").filter(Boolean).length);
+  eleventyConfig.addFilter("isoDateTime", (date) => new Date(date).toISOString());
+  let shareCards = [];
+  eleventyConfig.addCollection("shareCards", (api) => {
+    const levelName = Object.fromEntries(levels.map((l) => [l.slug, l.name]));
+    const statusName = Object.fromEntries(statuses.map((s) => [s.slug, s.name]));
+    const intro = seo.excerpt(texts.render("home-intro"));
+    shareCards = [
+      { url: "/", title: intro || site.title, label: "" },
+      ...allPosts(api).map((p) => ({ url: p.url, title: p.data.title, label: levelName[p.data.level] })),
+      ...allProjects(api).map((p) => ({ url: p.url, title: p.data.title, label: ["Project", statusName[p.data.status]].filter(Boolean).join(" · ") })),
+      ...allFragments(api).map((f) => ({ url: f.url, title: f.data.title, label: ["Fragment", f.data.kind].filter(Boolean).join(" · "), credit: f.data.by, quote: Boolean(f.data.by) })),
+    ].filter((c) => c.url);
+    return shareCards;
+  });
+  eleventyConfig.on("eleventy.after", async ({ directories }) => {
+    // A dry run (the editor's build check) writes nothing.
+    if (process.argv.includes("--dryrun")) return;
+    await cards.write(directories.output, shareCards);
+  });
 
   eleventyConfig.addGlobalData("year", () => new Date().getFullYear());
 

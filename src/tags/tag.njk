@@ -3,10 +3,12 @@ layout: layouts/page.njk
 pagination:
   data: collections.tagList
   size: 1
+  addAllPagesToCollections: true
   alias: tag
 permalink: "{{ tag.url }}"
 eleventyComputed:
   title: "Tagged “{{ tag.name | replace('/', ' / ') }}”"
+  description: "Writing and fragments by David Buik tagged “{{ tag.name | replace('/', ' / ') }}”."
 ---
 {%- if tag.parent or tag.children | length %}
 <nav class="filters tag-family" aria-label="Related tags">

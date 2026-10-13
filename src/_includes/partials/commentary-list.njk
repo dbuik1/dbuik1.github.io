@@ -1,0 +1,18 @@
+{#- Expects `commentaryList`. -#}
+{%- if commentaryList | length %}
+<ul class="commentary-list">
+  {%- for c in commentaryList %}
+  <li>
+    <a class="post-title" href="{{ c.url }}">{{ c.data.title }}</a>
+    <span class="commentary-on">On <cite>{{ c.data.source.title }}</cite>{% if c.data.source.site or c.data.source.author %}, {{ c.data.source.site or c.data.source.author }}{% endif %}</span>
+    <span class="post-meta">
+      <span>{{ c.data.source.type | sourceType }}</span>
+      <time datetime="{{ c.date | isoDate }}">{{ c.date | readableDate }}</time>
+      {%- if c.data.draft %}<span class="draft">Draft</span>{% endif %}
+    </span>
+  </li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="empty">No commentary yet.</p>
+{%- endif %}

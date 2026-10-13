@@ -21,15 +21,17 @@ export default {
   // Sections are added here as they are built.
   nav: [
     { label: "Home", url: "/" },
-    // Writing opens a short menu: every post, each research level, notes and visuals.
-    // Notes are kept to build on rather than read through, and visuals are mostly
-    // used inside writing, so both sit one step down.
+    // Writing opens a short menu: every post, each research level, commentary, notes and visuals.
+    // Commentary and notes are kept mainly for reference rather than read through, and
+    // visuals are mostly used inside writing, so all three sit one step down.
     {
       label: "Writing",
       url: "/blog/",
       children: [
         { label: "All writing", url: "/blog/" },
         ...levels.map((l) => ({ label: l.name, url: `/blog/${l.slug}/` })),
+        // Hidden until the first commentary is published, so the menu never leads to an empty page.
+        { label: "Commentary", url: "/commentary/", hideWhenEmpty: "commentary" },
         { label: "Notes", url: "/notes/" },
         // Hidden until the first visual is published, so the menu never leads to an empty page.
         { label: "Visuals", url: "/visuals/", hideWhenEmpty: "visuals" },

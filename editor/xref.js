@@ -132,7 +132,7 @@ function drawTargets() {
       b.textContent = t.title;
       const note = Object.assign(document.createElement("span"), {
         className: "muted",
-        textContent: ` · ${{ project: "Project", note: "Note" }[t.kind] ?? "Post"}${t.draft ? " · draft" : ""}`,
+        textContent: ` · ${{ project: "Project", note: "Note", visual: "Visual", commentary: "Commentary" }[t.kind] ?? "Post"}${t.draft ? " · draft" : ""}`,
       });
       b.append(note);
       b.setAttribute("aria-pressed", String(state.slug === t.slug));

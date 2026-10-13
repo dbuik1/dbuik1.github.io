@@ -19,6 +19,8 @@ import * as texts from "../lib/texts.js";
 import * as xref from "../lib/xref.js";
 import * as tagTools from "../lib/tags.js";
 import * as visuals from "../lib/visuals.js";
+import * as commentary from "../lib/commentary.js";
+import * as sources from "./sources.js";
 import site from "../src/_data/site.js";
 import levels from "../src/_data/levels.js";
 import statuses from "../src/_data/statuses.js";
@@ -28,6 +30,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BLOG = path.join(ROOT, "src/blog");
 const PROJECTS = path.join(ROOT, "src/projects");
 const NOTES = path.join(ROOT, "src/notes");
+const COMMENTARY = path.join(ROOT, "src/commentary");
 const DRAFTS = path.join(ROOT, "drafts");
 const IMAGES = path.join(ROOT, "src/images");
 const PORT = Number(process.env.PORT) || 8081;
@@ -110,7 +113,7 @@ const hash = (text) => createHash("sha1").update(text).digest("hex");
 
 function liveFile(kind, file) {
   if (!file) return null;
-  const full = { post: postPath, note: notePath, project: projectPath, text: texts.file, visual: visualPath }[kind ?? "post"](file);
+  const full = { post: postPath, note: notePath, project: projectPath, text: texts.file, visual: visualPath, commentary: commentaryPath }[kind ?? "post"](file);
   return existsSync(full) ? full : null;
 }
 
@@ -160,6 +163,72 @@ async function openNote(file) {
 
 // A note's address comes from its first few words, so long lines still get short addresses.
 const noteSlug = (text) => slugify(String(text).split(/\s+/).slice(0, 8).join(" ")).slice(0, 60).replace(/-$/, "");
+
+// ---- Commentary ----
+// Like posts, each is a dated file; the source it responds to is in its front matter.
+
+const commentaryPath = (file) => {
+  if (!POST_FILE.test(file ?? "")) throw new UserError("That commentary's file name isn't valid.");
+  return path.join(COMMENTARY, file);
+};
+
+async function listCommentary() {
+  if (!existsSync(COMMENTARY)) return [];
+  const files = (await readdir(COMMENTARY)).filter((f) => POST_FILE.test(f)).sort().reverse();
+  return Promise.all(
+    files.map(async (file) => {
+      const { data } = matter(await readFile(path.join(COMMENTARY, file), "utf8"));
+      return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], on: data.source?.title ?? "", type: data.source?.type ?? "", draft: !!data.draft };
+    })
+  );
+}
+
+const dateText = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v);
+
+async function openCommentary(file) {
+  const id = `commentary-${slugify(file.replace(/\.md$/, ""))}`;
+  const p = draftPath(id);
+  if (existsSync(p)) return JSON.parse(await readFile(p, "utf8"));
+  const { data, content } = matter(await readFile(commentaryPath(file), "utf8"));
+  const [, date, slug] = file.match(POST_FILE);
+  const source = Object.fromEntries(Object.entries(data.source ?? {}).map(([k, v]) => [k, dateText(v)]));
+  return { id, kind: "commentary", file, meta: { ...data, source, date, slug }, body: content.replace(/^\n+/, ""), updated: null };
+}
+
+// Fills in what publishing adds to a commentary's source: a saved copy at the
+// Internet Archive, a still image for a video, and its reference library entry.
+// None of these is essential, so a failure (offline, say) never stops publishing.
+async function completeSource(doc, slug) {
+  const s = { ...(doc.meta.source ?? {}) };
+  if (!s.archived && /^https?:/.test(s.url ?? "")) Object.assign(s, (await sources.archive(s.url, { wait: 30000 })) ?? {});
+  let stillFile = null;
+  if (!s.image && commentary.video(s.url ?? "")) {
+    const bytes = await sources.still(s);
+    if (bytes) {
+      const dir = path.join(IMAGES, "commentary");
+      await mkdir(dir, { recursive: true });
+      stillFile = path.join(dir, `${slug}.jpg`);
+      await writeFile(stillFile, await sharp(bytes).resize({ width: 1280, withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer());
+      s.image = `/images/commentary/${slug}.jpg`;
+    }
+  }
+  if (!s.key && s.title && s.url) {
+    const entries = references.splitEntries(references.readLibrary());
+    const same = entries.find((e) => e.raw.includes(`url = {${s.url}}`));
+    if (same) s.key = same.key;
+    else {
+      const [entry] = await references.toEntries(sources.bibtex(s, today()).raw, new Set(entries.map((e) => e.key)));
+      references.writeEntries([...entries, entry]);
+      try {
+        references.items();
+        s.key = entry.key;
+      } catch {
+        references.writeEntries(entries);
+      }
+    }
+  }
+  return { source: s, stillFile };
+}
 
 // ---- Projects ----
 
@@ -295,7 +364,14 @@ function frontMatter(meta) {
   for (const key of [...FIELD_ORDER, ...extra]) {
     const v = meta[key];
     if (v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length)) continue;
-    if (Array.isArray(v) && typeof v[0] === "object") {
+    if (!Array.isArray(v) && typeof v === "object") {
+      lines.push(`${key}:`);
+      for (const [k, x] of Object.entries(v)) {
+        if (x === undefined || x === null || x === "") continue;
+        if (typeof x === "string" && x.includes("\n")) lines.push(`  ${k}: |-`, ...x.split("\n").map((l) => (l ? `    ${l}` : "")));
+        else lines.push(`  ${k}: ${yamlString(String(x))}`);
+      }
+    } else if (Array.isArray(v) && typeof v[0] === "object") {
       lines.push(`${key}:`);
       for (const item of v) {
         Object.entries(item).forEach(([k, x], i) => lines.push(`${i ? "    " : "  - "}${k}: ${yamlString(String(x))}`));
@@ -374,6 +450,34 @@ function plan({ kind = "post", file, meta, body }) {
       content: frontMatter(fields) + body.trim() + "\n",
       message: `${file ? "Update" : "Add"} note “${meta.title.trim()}”`,
       url: `${site.url}/notes/${target.match(POST_FILE)[2]}/`,
+      file: target,
+      isNew: !file,
+    };
+  }
+  if (kind === "commentary") {
+    const problems = [];
+    const s = meta.source ?? {};
+    if (!meta.title?.trim()) problems.push("Write your headline.");
+    if (!/^https?:\/\/\S+$/.test(s.url?.trim() ?? "")) problems.push("Add the web address of what you're responding to.");
+    if (!s.title?.trim()) problems.push("Add the source's title.");
+    if (s.published && !/^\d{4}-\d{2}-\d{2}$/.test(s.published)) problems.push("Write the source's date like 2026-10-01, or leave it empty.");
+    if (commentary.balance(body).own < 3) problems.push("Write at least a sentence of your own beside the quotes.");
+    problems.push(...tagTools.problems(meta.tags).map((p) => `Tags: ${p}.`));
+    const slug = (file ? file.match(POST_FILE)[2] : slugify(meta.slug || meta.title || "").slice(0, 60).replace(/-$/, ""));
+    if (!slug) problems.push("The headline needs at least one letter or number.");
+    if (problems.length) throw new UserError(problems.join(" "));
+    const target = file ?? `${today()}-${slug}.md`;
+    const full = commentaryPath(target);
+    if (!file && existsSync(full)) throw new UserError(`A commentary called ${target} already exists. Change the address under More details.`);
+    const { date, slug: _slug, draft, sourceText: _text, ...fields } = meta;
+    const order = ["url", "title", "type", "author", "site", "published", "text", "doi", "archived", "archivedOn", "image", "key"];
+    fields.source = Object.fromEntries(order.filter((k) => String(s[k] ?? "").trim()).map((k) => [k, k === "text" ? String(s[k]).trim() : String(s[k]).replace(/\s+/g, " ").trim()]));
+    if (draft) fields.draft = true;
+    return {
+      full,
+      content: frontMatter(fields) + body.trim() + "\n",
+      message: `${file ? "Update" : "Add"} commentary “${meta.title.trim()}”`,
+      url: `${site.url}/commentary/${slug}/`,
       file: target,
       isNew: !file,
     };
@@ -531,8 +635,15 @@ async function checkBuild(restore) {
 }
 
 async function publish(doc) {
-  const p = plan(doc);
+  let p = plan(doc);
   await readyToPublish();
+  let extra = [];
+  if (doc.kind === "commentary") {
+    const { source, stillFile } = await completeSource(doc, p.url.split("/").at(-2));
+    doc = { ...doc, meta: { ...doc.meta, source } };
+    p = plan(doc);
+    if (stillFile) extra.push(stillFile);
+  }
   if (p.isNew && existsSync(p.full)) throw new UserError(`${path.relative(ROOT, p.full)} already exists. Change the address under More details.`);
 
   const files = [{ full: p.full, content: p.content }, ...(p.files ?? [])];
@@ -543,7 +654,7 @@ async function publish(doc) {
   }
   await checkBuild(() => Promise.all(files.map((f, i) => (previous[i] === null ? unlink(f.full) : writeFile(f.full, previous[i])))));
 
-  const paths = [...files.map((f) => f.full), ...imagesIn(p.content)];
+  const paths = [...files.map((f) => f.full), ...imagesIn(p.content), ...extra];
   let posterMissing = false;
   if (p.poster) {
     const poster = await capturePoster(p.poster);
@@ -553,7 +664,8 @@ async function publish(doc) {
   if (await libraryChanged()) paths.push(references.LIBRARY);
   const result = await commitAndPush(paths, p.message);
   if (doc.id) await unlink(draftPath(doc.id)).catch(() => {});
-  return { ...result, url: p.url, file: p.file, posterMissing, actions: `${site.repo}/actions` };
+  const unsaved = doc.kind === "commentary" && !doc.meta.source?.archived;
+  return { ...result, url: p.url, file: p.file, posterMissing, unsaved, actions: `${site.repo}/actions` };
 }
 
 // ---- Images ----
@@ -583,7 +695,7 @@ async function saveImage({ name, type, data }) {
 async function usesOf(key) {
   const pattern = new RegExp(`@${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w:.-])`);
   const found = [];
-  for (const dir of [BLOG, PROJECTS, NOTES].filter((d) => existsSync(d))) {
+  for (const dir of [BLOG, PROJECTS, NOTES, COMMENTARY].filter((d) => existsSync(d))) {
     for (const f of (await readdir(dir)).filter((x) => x.endsWith(".md"))) {
       if (pattern.test(await readFile(path.join(dir, f), "utf8"))) found.push(path.relative(ROOT, path.join(dir, f)));
     }
@@ -688,6 +800,11 @@ async function meta() {
         (await readdir(NOTES)).filter((f) => f.endsWith(".md")).map(async (f) => matter(await readFile(path.join(NOTES, f), "utf8")).data)
       )
     : [];
+  const commentaryMeta = existsSync(COMMENTARY)
+    ? await Promise.all(
+        (await readdir(COMMENTARY)).filter((f) => f.endsWith(".md")).map(async (f) => matter(await readFile(path.join(COMMENTARY, f), "utf8")).data)
+      )
+    : [];
   const uniq = (xs) => [...new Set(xs.filter(Boolean))].sort((a, b) => a.localeCompare(b));
   return {
     siteUrl: site.url,
@@ -697,7 +814,8 @@ async function meta() {
     stances: annotations.stances,
     projects,
     visuals: await listVisuals(),
-    tags: uniq([...posts, ...notes].flatMap((p) => tagTools.expand(p.tags ?? []))),
+    tags: uniq([...posts, ...notes, ...commentaryMeta].flatMap((p) => tagTools.expand(p.tags ?? []))),
+    sourceTypes: commentary.TYPES,
     noteKinds: uniq(notes.map((f) => f.kind)),
     series: uniq(posts.map((p) => p.series)),
     outline: annotations.outline(),
@@ -722,7 +840,17 @@ const routes = {
     notes: await listNotes(),
     projects: await listProjects(),
     visuals: await listVisuals(),
+    commentary: await listCommentary(),
   }),
+  "GET /api/commentary": async (_b, q) => (await syncSite(), withLive(await openCommentary(q.get("file")))),
+  "POST /api/source/lookup": async (b) => {
+    try {
+      return await sources.lookup(b.url, b.html ?? null);
+    } catch (e) {
+      throw new UserError(e.message);
+    }
+  },
+  "POST /api/source/archive": async (b) => (await sources.archive(String(b.url ?? ""))) ?? { archived: null },
   "GET /api/note": async (_b, q) => (await syncSite(), withLive(await openNote(q.get("file")))),
   "GET /api/project": async (_b, q) => (await syncSite(), withLive(await openProject(q.get("slug")))),
   "GET /api/visual": async (_b, q) => (await syncSite(), withLive(await openVisual(q.get("slug")))),

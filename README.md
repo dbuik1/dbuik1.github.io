@@ -28,17 +28,18 @@ npm run write    # then open http://127.0.0.1:8081/
 - **Annotate** adds an annotation after the paragraph you're in. Choose the Westminster Confession, the Scots Confession or the Bible, find the passage (or search for it), then select the words you're annotating. It only accepts words that appear once in the passage, so annotations can't break the build.
 - **Add a note** on the home screen publishes a note straight away: a single piece of knowledge, a fact or a quote, in one line. Give it a kind if you like (any word, such as quote or question; each kind gets its own page), tags, and under **Who said it** a name and source. The source can be a citation from your reference library, like `[@calvin1559, 1.1.1]`. Open a note from the Notes list to add a comment below it.
 - **Add a visual** (under Visuals on the home screen) adds an animation, simulation or interactive diagram from an HTML file, such as one Claude made for you. Drop the file in; the editor checks that it works on its own (nothing loaded from other websites, under 2 MB) and shows it running. Give it a title and a text description saying what it shows, for people who can't see or run it; your introduction above it is optional. Publishing also takes a still image of it with the Edge or Chrome on your computer.
+- **New commentary** (under Commentary on the home screen) is for responding to something you've read, watched or heard online. Paste its address and press **Look up**: the editor fills in the title, author, site and date (open the line under the address to correct them), keeps the article's text for quoting, and asks the Internet Archive to save a copy in case the original changes or disappears. Write your headline and your response. **Excerpt** quotes words from the source: select them in its text, or paste them. **Moment** (for videos and podcasts) points to a time, like 12:34 to 13:10, with an optional line of what is said. Publishing needs at least a sentence of your own, and asks first if a quote is very long or the quotes outweigh your own words. It also adds the source to your reference library and, for a video, keeps a still image on the site.
 - **Visual** in the toolbar places a visual after the paragraph you're in, with an optional caption. To make a post about one visual, choose it under **More details → Visual at the top**.
 - Tags can be nested with a slash, like `theology/church`. The suggestions include every tag already in use.
 - When you publish a live post at a different research level, the post shows the date it reached that level ("Explored since 10 November 2026"). The editor says so before you publish.
 - Drafts save automatically into `drafts/` on your computer. That folder is never committed, so drafts stay private until you publish.
 - **Publish** checks that the site still builds with the post, then commits it to `main` and pushes it, using your own git login. The site updates about a minute later. The repository must be on `main`.
-- Opening anything already on the site (a post, note, project or site text) shows what the site has now, with a line saying your edits stay on your computer until you press **Update live …**, which replaces the live version. If you'd already started changes to it, those open instead, marked as unpublished, with **Show what's live** to compare and **Discard my changes** to go back to the live version. The Site text list shows the start of each text as it is now.
+- Opening anything already on the site (a post, commentary, note, project or site text) shows what the site has now, with a line saying your edits stay on your computer until you press **Update live …**, which replaces the live version. If you'd already started changes to it, those open instead, marked as unpublished, with **Show what's live** to compare and **Discard my changes** to go back to the live version. The Site text list shows the start of each text as it is now.
 - The editor fetches the latest version of the site from GitHub whenever you list or open things, so changes made on another computer or on GitHub show up. If the editor's own code changed in that update, a note asks you to restart `npm run write`.
 - **More** has superscript, subscript, tables and HTML blocks. Inside a table, a row of table buttons appears (add or delete rows and columns, delete the table).
 - HTML is kept exactly as written. A block of HTML shows as a card with a live preview, and HTML inside a sentence (an `<abbr>`, a `<span>`) as a chip; click either, or press Enter on it, to edit the code.
 - **Source** switches to the post as plain Markdown and HTML, and **Rich text** switches back. If the formatted view can't hold something in a post (a code block, for example), the post opens in Source with a note saying so, and switching back asks first.
-- **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, the colophon, the introductions to the research levels, notes and visuals, each level's description, and projects. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
+- **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, the colophon, the introductions to the research levels, commentary, notes and visuals, each level's description, and projects. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
 - **Reference library** lists your sources. Add one by pasting a DOI, an ISBN or a BibTeX entry. To bring in sources from Zotero, export them as BibTeX (the Better BibTeX add-on gives stable keys) and import the file; entries with the same key are replaced. Library changes are published with your next post, or straight away with **Publish library**.
 
 The rest of this section describes the file format the editor writes, for editing by hand.
@@ -114,6 +115,40 @@ A footnote is `^[The note text.]` straight after the word it belongs to. A citat
 `[[on-scripture]]` links to the post at `/blog/on-scripture/` (or the project, note or visual with that name), using its title as the link text. `[[on-scripture|my earlier post]]` sets the link text, and `[[on-scripture#"exact words"|this point]]` links to those words, which are highlighted when the link is followed. The build stops if the target doesn't exist, is still a draft, or doesn't contain the words exactly once.
 
 
+### Commentary
+
+Commentary is your response to one piece of content elsewhere: an article, a video, a podcast, a social media post or a paper. It sits under **Writing → Commentary** (the menu shows it once there is one), with its own feed, and is kept out of All writing and the main feed. Each is a file in `src/commentary/`, named like a post and published at `/commentary/short-name/`:
+
+```markdown
+---
+title: Your headline
+source:
+  url: https://www.youtube.com/watch?v=…
+  title: The content's own title
+  type: video
+  author: Who made it
+  site: YouTube
+  published: 2026-10-01
+  archived: https://web.archive.org/web/20261013000000/https://www.youtube.com/watch?v=…
+  archivedOn: 2026-10-13
+  image: /images/commentary/short-name.jpg
+tags: [theology/grace]
+---
+Your response, with what you respond to quoted in place:
+
+{% excerpt %}
+Exact words from the source.
+{% endexcerpt %}
+
+{% moment "12:34", "13:10" %}
+Optional: what is said in that moment.
+{% endmoment %}
+```
+
+`title`, `source.url` and `source.title` are required. `type` is one of article, video, podcast, post, paper or other. For a social media post, `text` holds the post itself, shown in the card at the top. `archived` is a saved copy at the Internet Archive; the page links to it, and if the original goes, readers' browsers can find it. `image` is a still for a video, kept on this site.
+
+Each page starts with a card naming the source. An excerpt links to the exact words in the original (the browser scrolls to them and highlights them). A moment shows the video's still with a Play button that starts at that time; nothing loads from YouTube or Vimeo until a reader presses it. The build stops if a commentary has no words of your own beside its quotes, since quoting is fair for criticism and review, not for reposting.
+
 ### Notes
 
 A note is a single piece of knowledge, a fact or a quote, written in one line and kept to build longer writing on. Notes sit under **Writing → Notes** in the menu rather than in the main menu, and show in the Graph and in tags beside posts. Each is a file in `src/notes/`, named like a post (`2026-10-07-short-name.md`) and published at `/notes/short-name/`:
@@ -132,7 +167,7 @@ An optional comment.
 
 Only `title` (the note in one line) is required. `kind` is any word; each kind gets a page at `/notes/kinds/<kind>/`. `source` can be plain text or a citation from the library, like `[@calvin1559, 1.1.1]`. Notes share tags with posts and can be cross-linked with `[[short-name]]`.
 
-The **Graph** page draws every post, note, project, visual, tag and annotated passage, with lines for cross-links, tags, placed visuals and annotations.
+The **Graph** page draws every post, commentary, note, project, visual, tag and annotated passage, and the sources commentary responds to, with lines for cross-links, tags, placed visuals, annotations and sources.
 
 ### Visuals
 
@@ -224,7 +259,8 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/_includes/layouts/base.njk` | The page shell shared by every page |
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
-| `src/_text/` | Site text edited in the editor: home introduction and paragraph, colophon, introductions to research levels, notes and visuals, level descriptions |
+| `src/_text/` | Site text edited in the editor: home introduction and paragraph, colophon, introductions to research levels, commentary, notes and visuals, level descriptions |
+| `src/commentary/`, `lib/commentary.js`, `src/js/players.js` | Commentary: its pages, the `{% excerpt %}` and `{% moment %}` shortcodes and their checks, and the click-to-play video player |
 | `src/notes/`, `lib/notes.js` | Notes, their pages and kinds |
 | `src/visuals/`, `lib/visuals.js`, `src/js/visuals.js` | Visuals: their folders and pages, the `{% visual %}` shortcode and its checks, and the Run button and sandboxed frame |
 | `src/graph.njk`, `lib/graph.js`, `src/js/graph.js` | The Graph page: the site's connections, drawn with [d3-force](https://d3js.org/d3-force) |
@@ -239,15 +275,15 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `texts/` | Confession and Bible texts that posts can annotate |
 | `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
 | `src/annotations/` | The annotated passages pages |
-| `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, projects, notes, visuals, site text, images and the reference library; the rest is the page |
+| `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, projects, commentary, notes, visuals, site text, images and the reference library, and `sources.js` looks up and archives the sources commentary responds to; the rest is the page |
 | `tools/chokidar-globs/` | A small stand-in for the file watcher behind `npm start`, so the project has no known security warnings. Leave it in place |
-| `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts and projects after each build |
+| `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts, projects, commentary, notes and visuals after each build |
 | `src/_data/levels.js`, `statuses.js` | Research level and project status names |
 | `lib/tags.js` | Nested tags: their pages, counts and checks |
-| `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project`, `note`, `visual` |
+| `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project`, `commentary`, `note`, `visual` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |
 | `lib/seo.js`, `src/_includes/partials/seo.njk` | What search engines and AI crawlers read about each page: descriptions, dates, structured data |
-| `lib/cards.js` | Share images (`card.png` beside each post, project, note and visual) |
+| `lib/cards.js` | Share images (`card.png` beside each post, project, commentary, note and visual) |
 | `src/robots.njk`, `src/sitemap.njk`, `src/llms.njk` | `/robots.txt`, `/sitemap.xml` and `/llms.txt` |
 | `tools/indexnow.js` | Tells Bing about changed pages after each deploy |
 

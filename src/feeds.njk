@@ -10,4 +10,7 @@ permalink: /feeds/
   {%- for l in levels | reverse %}
   <li><a href="/blog/{{ l.slug }}/feed.xml">{{ l.name }}</a> <code>{{ site.url }}/blog/{{ l.slug }}/feed.xml</code></li>
   {%- endfor %}
+  {%- if collections.commentary | length %}
+  <li><a href="/commentary/feed.xml">Commentary</a> <code>{{ site.url }}/commentary/feed.xml</code></li>
+  {%- endif %}
 </ul>

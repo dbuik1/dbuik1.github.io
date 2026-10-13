@@ -2,6 +2,8 @@
 // Serves the editor UI (through Vite) and a small JSON API that reads and writes
 // files in this repository. It listens on 127.0.0.1 only and rejects requests
 // from other origins, because anything that can reach it can commit to the site.
+// The one exception is the capture extension in extension/, which may only hand
+// over a page to write about.
 import { createServer as createHttpServer } from "node:http";
 import { readFile, writeFile, readdir, mkdir, unlink } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
@@ -32,10 +34,14 @@ const PROJECTS = path.join(ROOT, "src/projects");
 const NOTES = path.join(ROOT, "src/notes");
 const COMMENTARY = path.join(ROOT, "src/commentary");
 const DRAFTS = path.join(ROOT, "drafts");
+const CAPTURES = path.join(ROOT, "drafts/saved-for-later");
 const IMAGES = path.join(ROOT, "src/images");
 const PORT = Number(process.env.PORT) || 8081;
 const ELEVENTY = path.join(ROOT, "node_modules/@11ty/eleventy/cmd.cjs");
 const ORIGIN = `http://127.0.0.1:${PORT}`;
+// The capture extension's fixed ID comes from the key in extension/manifest.json.
+const EXTENSION_ORIGIN = "chrome-extension://lobdfgckjpmceechmamhekieahplcbnn";
+const EXTENSION_ROUTES = new Set(["POST /api/capture"]);
 
 const POST_FILE = /^(\d{4}-\d{2}-\d{2})-(.+)\.md$/;
 const slugify = (s) =>
@@ -74,7 +80,7 @@ async function listDrafts() {
     .map((d) => ({
       id: d.id,
       kind: d.kind ?? "post",
-      title: d.kind === "text" ? texts.texts.find((t) => t.name === d.file)?.label ?? d.file : d.meta?.title || "Untitled",
+      title: d.kind === "text" ? texts.texts.find((t) => t.name === d.file)?.label ?? d.file : d.meta?.title || (d.meta?.source?.title ? `On ${d.meta.source.title}` : "Untitled"),
       updated: d.updated,
       file: d.file ?? null,
     }))
@@ -228,6 +234,77 @@ async function completeSource(doc, slug) {
     }
   }
   return { source: s, stillFile };
+}
+
+// ---- Captures from the browser extension ----
+// "Write now" opens a commentary draft straight away; "Save for later" keeps the
+// page, looked up while it was open, on the start screen until David writes it.
+
+const capturePath = (id) => {
+  if (!/^[a-z0-9-]+$/.test(id ?? "")) throw new UserError("That saved item isn't valid.");
+  return path.join(CAPTURES, `${id}.json`);
+};
+
+async function capture({ url, title, html, selection, time, mode, capturedAt }) {
+  if (!/^https?:\/\//.test(url ?? "")) throw new UserError("Only web pages can be captured.");
+  let found;
+  try {
+    found = await sources.lookup(url, html || null);
+  } catch {
+    found = { source: { url, title: String(title ?? "").trim() || url }, paragraphs: [] };
+  }
+  const item = {
+    id: `${slugify(found.source.title ?? "").slice(0, 40).replace(/-$/, "") || "commentary"}-${Date.now().toString(36)}`,
+    capturedAt: capturedAt || new Date().toISOString(),
+    source: found.source,
+    sourceText: found.paragraphs ?? [],
+    quote: commentary.quoteMarkdown({ text: selection, time: time ?? null }),
+  };
+  if (mode === "write") {
+    const draft = await draftFromCapture(item);
+    return { draft: draft.id, open: `${ORIGIN}/?draft=${draft.id}` };
+  }
+  await mkdir(CAPTURES, { recursive: true });
+  await writeFile(capturePath(item.id), JSON.stringify(item, null, 2));
+  keepCopy(item.id, item.source.url);
+  return { saved: item.id };
+}
+
+// The Internet Archive can take a minute, so a saved item gets its copy in the background.
+async function keepCopy(id, url) {
+  const copy = await sources.archive(url).catch(() => null);
+  if (!copy?.archived || !existsSync(capturePath(id))) return;
+  const item = JSON.parse(await readFile(capturePath(id), "utf8"));
+  if (item.source.url !== url) return;
+  Object.assign(item.source, copy);
+  await writeFile(capturePath(id), JSON.stringify(item, null, 2));
+}
+
+const draftFromCapture = (item) =>
+  saveDraft({
+    id: item.id,
+    kind: "commentary",
+    meta: { title: "", tags: [], source: item.source, sourceText: item.sourceText },
+    body: item.quote ? `${item.quote}\n` : "",
+  });
+
+async function listCaptures() {
+  if (!existsSync(CAPTURES)) return [];
+  const files = (await readdir(CAPTURES)).filter((f) => f.endsWith(".json"));
+  const items = await Promise.all(files.map(async (f) => JSON.parse(await readFile(path.join(CAPTURES, f), "utf8"))));
+  return items
+    .map(({ id, capturedAt, source, quote }) => {
+      const time = quote?.match(/^\{% moment "([^"]+)"/)?.[1];
+      return { id, capturedAt, title: source.title, site: source.site ?? "", type: source.type ?? "", quote: time ? `from ${time}` : quote ? "with a quote" : "" };
+    })
+    .sort((a, b) => (b.capturedAt ?? "").localeCompare(a.capturedAt ?? ""));
+}
+
+async function writeCapture({ id }) {
+  const item = JSON.parse(await readFile(capturePath(id), "utf8"));
+  const draft = await draftFromCapture(item);
+  await unlink(capturePath(id));
+  return draft;
 }
 
 // ---- Projects ----
@@ -841,7 +918,11 @@ const routes = {
     projects: await listProjects(),
     visuals: await listVisuals(),
     commentary: await listCommentary(),
+    later: await listCaptures(),
   }),
+  "POST /api/capture": (b) => capture(b),
+  "POST /api/capture/write": (b) => writeCapture(b),
+  "POST /api/capture/delete": async (b) => (await unlink(capturePath(b.id)), { ok: true }),
   "GET /api/commentary": async (_b, q) => (await syncSite(), withLive(await openCommentary(q.get("file")))),
   "POST /api/source/lookup": async (b) => {
     try {
@@ -942,7 +1023,8 @@ const server = createHttpServer(async (req, res) => {
     return res.end("Forbidden");
   }
   const fetchSite = req.headers["sec-fetch-site"];
-  if ((origin && origin !== ORIGIN && origin !== `http://localhost:${PORT}`) || (fetchSite && fetchSite !== "same-origin")) {
+  const fromExtension = origin === EXTENSION_ORIGIN && EXTENSION_ROUTES.has(`${req.method} ${url.pathname}`);
+  if (!fromExtension && ((origin && origin !== ORIGIN && origin !== `http://localhost:${PORT}`) || (fetchSite && fetchSite !== "same-origin"))) {
     res.statusCode = 403;
     return res.end("Forbidden");
   }

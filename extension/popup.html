@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Capture for commentary</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main id="capture" hidden>
+    <p class="page-site" id="site"></p>
+    <h1 class="page-title" id="title"></h1>
+    <blockquote class="quote" id="quote" hidden></blockquote>
+    <label class="moment" id="moment" hidden><input type="checkbox" id="use-time" checked> <span id="time-label"></span></label>
+    <div class="actions">
+      <button type="button" class="primary" id="write">Write now</button>
+      <button type="button" class="secondary" id="later">Save for later</button>
+    </div>
+    <p class="hint" id="hint">To quote words, select them on the page before opening this.</p>
+  </main>
+  <p class="state" id="state" role="status" hidden></p>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

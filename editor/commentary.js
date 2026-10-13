@@ -91,9 +91,9 @@ async function lookUp() {
     $("source-details").open = !source.title;
     drawSummary();
     onChange();
-    setState("Found. Saving a copy at the Internet Archive…");
+    setState("Found.");
     if (!$("title").value.trim()) $("title").focus();
-    keepCopy(source.url);
+    saveCopy(source.url);
   } catch (e) {
     setState(`Couldn't look it up: ${e.message} Fill in the details yourself.`, "bad");
     $("source-details").open = true;
@@ -103,7 +103,8 @@ async function lookUp() {
   }
 }
 
-async function keepCopy(url) {
+export async function saveCopy(url) {
+  setState(`${$("source-state").textContent} Saving a copy at the Internet Archive…`.trim());
   try {
     const copy = await api("POST", "/api/source/archive", { url });
     if (source.url !== url) return;

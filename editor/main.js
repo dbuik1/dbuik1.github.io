@@ -13,7 +13,7 @@ import MarkdownIt from "markdown-it";
 import { HtmlBlock, HtmlInline, Sup, Sub, initHtml, newHtmlBlock } from "./html.js";
 import { VisualEmbed, initVisualPicker, openVisualPicker, setVisuals } from "./visual.js";
 import { Excerpt, Moment, balance } from "./clips.js";
-import { initCommentary, setSource, getSource, openExcerpt, openMoment, LONG_QUOTE } from "./commentary.js";
+import { initCommentary, setSource, getSource, saveCopy, openExcerpt, openMoment, LONG_QUOTE } from "./commentary.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -343,7 +343,10 @@ function fill(d) {
   links = Array.isArray(m.links) ? m.links.map((l) => ({ ...l })) : [];
   renderLinks();
   $("slug-prefix").textContent = { project: "/projects/", visual: "/visuals/", commentary: "/commentary/" }[kind] ?? "/blog/";
-  if (kind === "commentary") setSource(m.source, m.sourceText);
+  if (kind === "commentary") {
+    setSource(m.source, m.sourceText);
+    if (!d.file && m.source?.url && !m.source.archived) saveCopy(m.source.url);
+  }
   fields.postVisual.value = m.visual ?? "";
   fields.visualDescription.value = kind === "visual" ? m.description ?? "" : "";
   setVisualHtml(kind === "visual" ? m.html ?? "" : "");
@@ -773,9 +776,30 @@ async function showHome() {
   doc = null;
   showView("home");
   history.replaceState(null, "", "/");
-  const { drafts, posts, notes, visuals, commentary, sync } = await api("GET", "/api/list");
+  const { drafts, posts, notes, visuals, commentary, later, sync } = await api("GET", "/api/list");
   setVisuals(visuals);
   showSync(sync);
+
+  // Pages saved with the Chrome extension, waiting for a commentary.
+  $("later-section").hidden = !later.length;
+  $("later-list").replaceChildren(
+    ...later.map((c) => {
+      const li = document.createElement("li");
+      const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: c.title });
+      open.title = "Start a commentary on this";
+      open.addEventListener("click", async () => showWrite(await api("POST", "/api/capture/write", { id: c.id })));
+      const type = meta.sourceTypes.find((t) => t.slug === c.type)?.name;
+      const info = [c.site, type, c.quote, `saved ${new Date(c.capturedAt).toLocaleDateString()}`].filter(Boolean).join(" · ");
+      const del = Object.assign(document.createElement("button"), { type: "button", className: "link-button subtle", textContent: "Remove" });
+      del.addEventListener("click", async () => {
+        if (!confirm(`Remove “${c.title}” from Saved for later?`)) return;
+        await api("POST", "/api/capture/delete", { id: c.id });
+        showHome();
+      });
+      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: info }), del);
+      return li;
+    })
+  );
 
   const draftList = $("draft-list");
   draftList.replaceChildren(
@@ -1054,4 +1078,7 @@ window.addEventListener("beforeunload", (e) => {
   if (dirty) e.preventDefault();
 });
 
-showHome();
+// The Chrome extension's Write now opens the editor at ?draft=<id>.
+const startDraft = new URLSearchParams(location.search).get("draft");
+if (startDraft) openDraft(startDraft).catch(() => showHome());
+else showHome();

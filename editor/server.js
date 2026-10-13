@@ -136,6 +136,7 @@ function withLive(doc) {
   const live = { title: data.title ?? null, body: content.replace(/^\n+/, "").trim(), hash: hash(raw) };
   const out = { ...doc, live, base: doc.base ?? (doc.updated ? null : live.hash) };
   if (kind === "post") out.liveLevel = data.level ?? null;
+  if (kind === "commentary") out.check = sourceChecks()[doc.file] ?? null;
   out.liveMoved = !!(doc.updated && doc.base && doc.base !== live.hash);
   return out;
 }
@@ -178,13 +179,23 @@ const commentaryPath = (file) => {
   return path.join(COMMENTARY, file);
 };
 
+// What the monthly check (tools/check-sources.js) last found wrong with each source.
+const sourceChecks = () => {
+  try {
+    return JSON.parse(readFileSync(path.join(ROOT, "src/_data/sourceChecks.json"), "utf8"));
+  } catch {
+    return {};
+  }
+};
+
 async function listCommentary() {
   if (!existsSync(COMMENTARY)) return [];
+  const checks = sourceChecks();
   const files = (await readdir(COMMENTARY)).filter((f) => POST_FILE.test(f)).sort().reverse();
   return Promise.all(
     files.map(async (file) => {
       const { data } = matter(await readFile(path.join(COMMENTARY, file), "utf8"));
-      return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], on: data.source?.title ?? "", type: data.source?.type ?? "", draft: !!data.draft };
+      return { file, title: data.title ?? file, date: file.match(POST_FILE)[1], on: data.source?.title ?? "", type: data.source?.type ?? "", draft: !!data.draft, check: checks[file]?.status ?? null };
     })
   );
 }

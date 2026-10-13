@@ -168,6 +168,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addCollection("notes", allNotes);
   eleventyConfig.addCollection("noteKinds", (api) => notes.kinds(allNotes(api)));
   eleventyConfig.addCollection("commentary", allCommentary);
+  eleventyConfig.addCollection("commentaryGroups", (api) => commentary.groups(allCommentary(api)));
   // slug → posts, projects and notes that link to it with [[slug]], newest first.
   eleventyConfig.addCollection("backlinks", (api) => {
     const map = {};
@@ -215,6 +216,11 @@ export default function (eleventyConfig) {
     }
   });
   eleventyConfig.addFilter("sourceType", commentary.typeName);
+  eleventyConfig.addFilter("people", commentary.people);
+  eleventyConfig.addFilter("siteUrl", commentary.siteUrl);
+  eleventyConfig.addFilter("personUrl", commentary.personUrl);
+  // Sites and people with more than one commentary, worth browsing by.
+  eleventyConfig.addFilter("shared", (groups) => groups.filter((g) => g.count > 1));
   eleventyConfig.addFilter("sourcePlayer", (source) => commentary.player(source));
   eleventyConfig.addFilter("sourceText", (text) =>
     String(text ?? "")

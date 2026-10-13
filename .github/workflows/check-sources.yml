@@ -1,0 +1,36 @@
+name: Check commentary sources
+
+# Once a month: are the sources commentary responds to still there, and do they
+# still contain the words quoted from them? Changes are committed, and the site
+# is rebuilt so readers are pointed to the saved copies.
+on:
+  schedule:
+    - cron: "17 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node tools/check-sources.js
+      - name: Commit and rebuild if anything changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git diff --quiet && exit 0
+          git config user.name dbuik1
+          git config user.email 216179387+dbuik1@users.noreply.github.com
+          git commit -am "Update commentary source checks"
+          git push
+          # Pushes made with this workflow's token don't start other workflows, so start the deploy directly.
+          gh workflow run deploy.yml --ref main

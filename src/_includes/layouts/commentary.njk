@@ -9,6 +9,7 @@ layout: layouts/base.njk
   </header>
 
   {%- set withPlayer = 'class="moment"' not in content %}
+  {%- set check = sourceChecks[page.inputPath | replace("./src/commentary/", "")] %}
   {% include "partials/source-card.njk" %}
 
   <div class="post-body e-content">

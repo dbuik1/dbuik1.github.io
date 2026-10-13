@@ -150,6 +150,10 @@ Optional: what is said in that moment.
 
 Each page starts with a card naming the source. An excerpt links to the exact words in the original (the browser scrolls to them and highlights them). A moment shows the video's still with a Play button that starts at that time; nothing loads from YouTube or Vimeo until a reader presses it. The build stops if a commentary has no words of your own beside its quotes, since quoting is fair for criticism and review, not for reposting.
 
+The source card links each author and the site to a page collecting all your commentary on them (`/commentary/people/<name>/` and `/commentary/sites/<name>/`). Those with more than one commentary are listed under the Commentary list.
+
+Once a month, the **Check commentary sources** action (`tools/check-sources.js`) visits every source. It checks that the source is still there and that the words you quoted still appear in it. What it finds wrong goes in `src/_data/sourceChecks.json` and is committed, and the site is rebuilt. A commentary whose source has gone then says so, and its title links to the saved copy. One whose quoted words have changed says that too. The editor marks these in the Commentary list and above the source when you open one. A site that refuses the check, or doesn't answer, keeps its last result. To run the check now, open the action on GitHub and press **Run workflow**, or run `node tools/check-sources.js`.
+
 ### Notes
 
 A note is a single piece of knowledge, a fact or a quote, written in one line and kept to build longer writing on. Notes sit under **Writing → Notes** in the menu rather than in the main menu, and show in the Graph and in tags beside posts. Each is a file in `src/notes/`, named like a post (`2026-10-07-short-name.md`) and published at `/notes/short-name/`:
@@ -261,7 +265,8 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
 | `src/_text/` | Site text edited in the editor: home introduction and paragraph, colophon, introductions to research levels, commentary, notes and visuals, level descriptions |
-| `src/commentary/`, `lib/commentary.js`, `src/js/players.js` | Commentary: its pages, the `{% excerpt %}` and `{% moment %}` shortcodes and their checks, and the click-to-play video player |
+| `src/commentary/`, `lib/commentary.js`, `src/js/players.js` | Commentary: its pages and its pages per site and person, the `{% excerpt %}` and `{% moment %}` shortcodes and their checks, and the click-to-play video player |
+| `tools/check-sources.js`, `src/_data/sourceChecks.json` | The monthly check of commentary sources, and what it last found |
 | `src/notes/`, `lib/notes.js` | Notes, their pages and kinds |
 | `src/visuals/`, `lib/visuals.js`, `src/js/visuals.js` | Visuals: their folders and pages, the `{% visual %}` shortcode and its checks, and the Run button and sandboxed frame |
 | `src/graph.njk`, `lib/graph.js`, `src/js/graph.js` | The Graph page: the site's connections, drawn with [d3-force](https://d3js.org/d3-force) |

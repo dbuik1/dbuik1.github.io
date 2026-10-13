@@ -48,17 +48,26 @@ export function initCommentary(apiFn, types, changed) {
   initMoment();
 }
 
-export function setSource(s = {}, text = []) {
+export function setSource(s = {}, text = [], check = null) {
   source = { ...s };
   paragraphs = Array.isArray(text) ? [...text] : [];
   $("source-url").value = source.url ?? "";
   for (const [key, id] of Object.entries(FIELDS)) $(id).value = source[key] ?? "";
-  setState("");
+  setState(checkText(check), check ? "bad" : "");
   $("source-details").open = !!source.url && !source.title;
   drawSummary();
 }
 
 export const getSource = () => ({ source: { ...source }, sourceText: [...paragraphs] });
+
+// What the monthly check of sources last found, in words.
+function checkText(check) {
+  if (!check) return "";
+  const since = new Date(check.since).toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" });
+  if (check.status === "gone") return `The original has been gone since ${since}. ${source.archived ? "The site links readers to the saved copy instead." : "There's no saved copy of it."}`;
+  const missing = (check.missing ?? []).map((q) => `“${q}”`).join(", ");
+  return `Since ${since} the original no longer has ${missing ? `these quoted words: ${missing}` : "all the quoted words"}. The site tells readers it has changed.`;
+}
 
 /** Videos and podcasts can point to a moment; other sources quote words. */
 const timed = () => ["video", "podcast"].includes(source.type);

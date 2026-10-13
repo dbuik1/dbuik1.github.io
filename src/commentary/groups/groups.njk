@@ -1,0 +1,14 @@
+---
+layout: layouts/page.njk
+pagination:
+  data: collections.commentaryGroups
+  size: 1
+  alias: group
+permalink: "{{ group.url }}"
+eleventyComputed:
+  title: "Commentary on {{ group.name }}"
+  description: "David Buik's commentary on {{ 'work published by ' if group.kind == 'site' else 'the work of ' }}{{ group.name }}."
+---
+{%- set commentaryList = group.items %}
+{% include "partials/commentary-list.njk" %}
+<p class="subscribe"><a href="/commentary/">All commentary</a></p>

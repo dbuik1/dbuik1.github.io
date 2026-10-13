@@ -344,7 +344,7 @@ function fill(d) {
   renderLinks();
   $("slug-prefix").textContent = { project: "/projects/", visual: "/visuals/", commentary: "/commentary/" }[kind] ?? "/blog/";
   if (kind === "commentary") {
-    setSource(m.source, m.sourceText);
+    setSource(m.source, m.sourceText, d.check);
     if (!d.file && m.source?.url && !m.source.archived) saveCopy(m.source.url);
   }
   fields.postVisual.value = m.visual ?? "";
@@ -843,7 +843,8 @@ async function showHome() {
       const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: c.title });
       open.addEventListener("click", () => openCommentary(c.file));
       const type = meta.sourceTypes.find((t) => t.slug === c.type)?.name;
-      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: [c.date, c.on && `on ${c.on}`, type, c.draft && "hidden draft"].filter(Boolean).join(" · ") }));
+      const check = { gone: "source gone", changed: "source changed" }[c.check];
+      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: [c.date, c.on && `on ${c.on}`, type, c.draft && "hidden draft", check].filter(Boolean).join(" · ") }));
       return li;
     })
   );

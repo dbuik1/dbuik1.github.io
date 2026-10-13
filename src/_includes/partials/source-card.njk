@@ -1,17 +1,25 @@
-{#- Expects `source`, and `withPlayer` when the whole video should be playable here. -#}
+{#- Expects `source`, `withPlayer` when the whole video should be playable here, and `check`
+    when the monthly check found the original gone or changed (see tools/check-sources.js). -#}
+{%- set gone = check and check.status == "gone" %}
 <aside class="source-card h-cite" aria-label="What this responds to">
   {%- if withPlayer %}{{ source | sourcePlayer | safe }}{% endif %}
   {%- if source.text %}
   <blockquote class="source-text p-content" cite="{{ source.url }}">{{ source.text | sourceText | safe }}</blockquote>
   {%- endif %}
-  <p class="source-title"><span class="source-type">{{ source.type | sourceType }}</span> <a class="p-name u-url" href="{{ source.url }}" rel="noopener"{% if source.archived %} data-versionurl="{{ source.archived }}"{% if source.archivedOn %} data-versiondate="{{ source.archivedOn | isoDate }}"{% endif %}{% endif %}>{{ source.title }}</a></p>
+  <p class="source-title"><span class="source-type">{{ source.type | sourceType }}</span> <a class="p-name u-url" href="{{ source.archived if (gone and source.archived) else source.url }}" rel="noopener"{% if source.archived %} data-versionurl="{{ source.archived }}"{% if source.archivedOn %} data-versiondate="{{ source.archivedOn | isoDate }}"{% endif %}{% endif %}>{{ source.title }}</a></p>
   {%- if source.author or source.site or source.published %}
   <p class="source-meta">
-    {%- if source.author %}<span class="p-author h-card">{{ source.author }}</span>{% endif %}
+    {%- for person in source.author | people %}<a class="p-author h-card" href="{{ person | personUrl }}">{{ person }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
     {%- if source.author and (source.site or source.published) %}, {% endif %}
-    {%- if source.site %}<span class="p-publication">{{ source.site }}</span>{% endif %}
+    {%- if source.site %}<a class="p-publication" href="{{ source.site | siteUrl }}">{{ source.site }}</a>{% endif %}
     {%- if source.site and source.published %}, {% endif %}
     {%- if source.published %}<time class="dt-published" datetime="{{ source.published | isoDate }}">{{ source.published | readableDate }}</time>{% endif %}
+  </p>
+  {%- endif %}
+  {%- if check %}
+  <p class="source-check">
+    {%- if gone %}The original is no longer at its address{% if source.archived %}, so the title links to the saved copy{% endif %}.
+    {%- else %}The original has changed since this was written{% if source.archived %}; the saved copy shows it as it was{% endif %}.{% endif %}
   </p>
   {%- endif %}
   {%- if source.archived %}

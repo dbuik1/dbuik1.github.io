@@ -8,4 +8,12 @@ permalink: /commentary/
 {{ "commentary-intro" | siteText | safe }}
 {%- set commentaryList = collections.commentary %}
 {% include "partials/commentary-list.njk" %}
+{%- set sites = collections.commentaryGroups | byField("kind", "site") | shared %}
+{%- set persons = collections.commentaryGroups | byField("kind", "person") | shared %}
+{%- if sites | length or persons | length %}
+<nav class="commentary-browse" aria-label="Commentary by site and person">
+  {%- if sites | length %}<p>Sites: {% for g in sites %}<a href="{{ g.url }}">{{ g.name }} <span class="count">{{ g.count }}</span></a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+  {%- if persons | length %}<p>People: {% for g in persons %}<a href="{{ g.url }}">{{ g.name }} <span class="count">{{ g.count }}</span></a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+</nav>
+{%- endif %}
 <p class="subscribe"><a href="/commentary/feed.xml">Subscribe to commentary</a></p>

@@ -12,6 +12,8 @@ import { TableKit } from "@tiptap/extension-table";
 import MarkdownIt from "markdown-it";
 import { HtmlBlock, HtmlInline, Sup, Sub, initHtml, newHtmlBlock } from "./html.js";
 import { VisualEmbed, initVisualPicker, openVisualPicker, setVisuals } from "./visual.js";
+import { Excerpt, Moment, balance } from "./clips.js";
+import { initCommentary, setSource, getSource, openExcerpt, openMoment, LONG_QUOTE } from "./commentary.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,6 +36,7 @@ initXref(api);
 initHtml();
 initVisualPicker();
 setVisuals(meta.visuals);
+initCommentary(api, meta.sourceTypes, () => changed());
 await Promise.all([loadLibrary().catch(() => {}), loadTargets().catch(() => {})]);
 
 // ---- Passage lookups, cached for the annotation cards ----
@@ -65,6 +68,8 @@ const editor = new Editor({
     Citation.configure({ onEdit: (attrs, update) => openCite(attrs, update), label: citationLabel }),
     Xref.configure({ onEdit: (attrs, update) => openXref(attrs, update, true), onTrigger: () => crossLink() }),
     VisualEmbed.configure({ onEdit: (attrs, update) => openVisualPicker(attrs, update) }),
+    Excerpt.configure({ onEdit: (attrs, update) => openExcerpt(attrs, update) }),
+    Moment.configure({ onEdit: (attrs, update) => openMoment(attrs, update) }),
     HtmlBlock,
     HtmlInline,
     Sup,
@@ -237,6 +242,13 @@ function collect() {
     };
   }
   const slug = fields.slug.value.trim() || slugify(fields.title.value);
+  if (kind === "commentary") {
+    return {
+      ...base,
+      meta: { ...(doc?.meta ?? {}), title: fields.title.value.trim(), tags: [...tags], slug, ...getSource() },
+      body: body(),
+    };
+  }
   if (kind === "visual") {
     return {
       ...base,
@@ -300,6 +312,10 @@ const PUBLISH = {
     new: ["Publish visual", "Checks the visual and takes its still image, then pushes it live."],
     live: ["Update live visual", "Checks the visual and takes a new still image, then pushes the changes live."],
   },
+  commentary: {
+    new: ["Publish commentary", "Checks it, saves a copy of the source at the Internet Archive, then pushes it live."],
+    live: ["Update live commentary", "Checks it, then pushes the changes live."],
+  },
   note: {
     new: ["Publish note", "Checks the note, then pushes it live."],
     live: ["Update live note", "Checks the note, then pushes the changes live."],
@@ -326,12 +342,13 @@ function fill(d) {
   fields.summary.value = m.summary ?? "";
   links = Array.isArray(m.links) ? m.links.map((l) => ({ ...l })) : [];
   renderLinks();
-  $("slug-prefix").textContent = { project: "/projects/", visual: "/visuals/" }[kind] ?? "/blog/";
+  $("slug-prefix").textContent = { project: "/projects/", visual: "/visuals/", commentary: "/commentary/" }[kind] ?? "/blog/";
+  if (kind === "commentary") setSource(m.source, m.sourceText);
   fields.postVisual.value = m.visual ?? "";
   fields.visualDescription.value = kind === "visual" ? m.description ?? "" : "";
   setVisualHtml(kind === "visual" ? m.html ?? "" : "");
   fields.title.value = m.title ?? "";
-  fields.title.placeholder = kind === "note" ? "The note in one line" : "Title";
+  fields.title.placeholder = { note: "The note in one line", commentary: "Your headline" }[kind] ?? "Title";
   fields.level.value = m.level ?? "";
   levelHint();
   fields.description.value = kind === "post" ? m.description ?? "" : "";
@@ -368,7 +385,7 @@ function liveUrl(d) {
   if (kind === "project") return `${meta.siteUrl}/projects/${d.file}/`;
   if (kind === "visual") return `${meta.siteUrl}/visuals/${d.file}/`;
   const slug = d.file.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.md$/, "");
-  return `${meta.siteUrl}/${kind === "note" ? "notes" : "blog"}/${slug}/`;
+  return `${meta.siteUrl}/${{ note: "notes", commentary: "commentary" }[kind] ?? "blog"}/${slug}/`;
 }
 
 const REOPEN = {
@@ -377,6 +394,7 @@ const REOPEN = {
   project: (d) => openProject(d.file),
   text: (d) => openText(d.file),
   visual: (d) => openVisual(d.file),
+  commentary: (d) => openCommentary(d.file),
 };
 
 function showLive(d) {
@@ -498,6 +516,7 @@ const hideCallout = () => ($("callout").hidden = true);
 $("publish").addEventListener("click", async () => {
   const button = $("publish");
   if (doc?.liveMoved && !confirm("The version on the site changed after you started these changes. Publishing replaces it with yours. Publish anyway?")) return;
+  if (kindOf(doc) === "commentary" && !quotesInProportion()) return;
   button.disabled = true;
   const label = button.textContent;
   button.textContent = "Checking…";
@@ -508,8 +527,10 @@ $("publish").addEventListener("click", async () => {
     const kind = kindOf(doc);
     const title = kind === "text" ? textInfo(doc.file).label : fields.title.value.trim();
     const wasLive = !!doc?.file;
-    const back = ["post", "note", "visual"].includes(kind) ? { label: "Back to the start", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
+    const back = HOME_KINDS.includes(kind) ? { label: "Back to the start", onClick: showHome } : { label: "Back to site text and projects", onClick: showSite };
     const open = { label: kind === "post" ? "Open the post" : "Open the page", href: result.url };
+    // Saving a copy needs the Internet Archive; publishing goes ahead without it.
+    const copyNote = kind === "commentary" && result.unsaved ? " The Internet Archive couldn't save a copy of the source; update the commentary later to try again." : "";
     // Without a still image, posts show the visual as a plain Run button.
     const posterNote = result.posterMissing
       ? " No still image was taken because neither Edge nor Chrome could be started on this computer, so posts show it as a Run button on a plain background."
@@ -519,7 +540,7 @@ $("publish").addEventListener("click", async () => {
     if (result.unchanged) {
       showCallout("ok", `Nothing had changed in “${title}”, so there was nothing to publish.`, [back]);
     } else if (result.pushed) {
-      showCallout("ok", (wasLive ? `Your changes to “${title}” are published. They will be live in about a minute.` : `“${title}” is published. It will be live in about a minute.`) + placeIt + posterNote, [
+      showCallout("ok", (wasLive ? `Your changes to “${title}” are published. They will be live in about a minute.` : `“${title}” is published. It will be live in about a minute.`) + placeIt + posterNote + copyNote, [
         open,
         { label: "Watch the build", href: result.actions },
         back,
@@ -548,6 +569,18 @@ $("publish").addEventListener("click", async () => {
     button.textContent = label;
   }
 });
+
+// Quoting is fair when the quotes serve the commentary, so long ones get a second look.
+function quotesInProportion() {
+  const { quoted, longest, own } = balance(body());
+  if (longest > LONG_QUOTE * 1.5) {
+    return confirm(`One quote is ${longest} words long. Quoting only the part you respond to keeps this fair to the source. Publish anyway?`);
+  }
+  if (quoted > own) {
+    return confirm(`The quotes (${quoted} words) are longer than your own words (${own}). Publish anyway?`);
+  }
+  return true;
+}
 
 // ---- Source view ----
 // The source is the text exactly as saved, so anything the rich-text view can't
@@ -664,6 +697,11 @@ function placeVisual() {
   const at = afterBlock();
   openVisualPicker(null, (attrs) => editor.chain().focus().insertContentAt(at, { type: "visualEmbed", attrs }).run());
 }
+// A quote is its own block, after the paragraph being written.
+function quote(type, open) {
+  const at = afterBlock();
+  open(null, (attrs) => editor.chain().focus().insertContentAt(at, { type, attrs }).run());
+}
 function annotate() {
   openPicker(null, (attrs) => {
     // Annotations sit after the paragraph they belong to.
@@ -684,6 +722,8 @@ document.querySelector(".toolbar").addEventListener("click", (e) => {
   if (cmd === "visual") return placeVisual();
   if (cmd === "footnote") return footnote();
   if (cmd === "cite") return cite();
+  if (cmd === "excerpt") return quote("excerpt", openExcerpt);
+  if (cmd === "moment") return quote("moment", openMoment);
   if (cmd === "xref") return crossLink();
   commands[cmd](editor.chain().focus()).run();
 });
@@ -724,14 +764,16 @@ function showView(id) {
   for (const v of VIEWS) $(v).hidden = v !== id;
   window.scrollTo(0, 0);
 }
-const KIND_NOTE = { project: "Project · ", text: "Site text · ", note: "Note · ", visual: "Visual · " };
+const KIND_NOTE = { project: "Project · ", text: "Site text · ", note: "Note · ", visual: "Visual · ", commentary: "Commentary · " };
+// Kinds listed on the start screen; the rest are under Site text and projects.
+const HOME_KINDS = ["post", "note", "visual", "commentary"];
 
 async function showHome() {
   await saveDraft();
   doc = null;
   showView("home");
   history.replaceState(null, "", "/");
-  const { drafts, posts, notes, visuals, sync } = await api("GET", "/api/list");
+  const { drafts, posts, notes, visuals, commentary, sync } = await api("GET", "/api/list");
   setVisuals(visuals);
   showSync(sync);
 
@@ -769,6 +811,19 @@ async function showHome() {
     })
   );
   if (!posts.length) postList.innerHTML = '<li class="muted">Nothing published yet.</li>';
+
+  const commentaryList = $("commentary-list");
+  commentaryList.replaceChildren(
+    ...commentary.map((c) => {
+      const li = document.createElement("li");
+      const open = Object.assign(document.createElement("button"), { type: "button", className: "doc-link", textContent: c.title });
+      open.addEventListener("click", () => openCommentary(c.file));
+      const type = meta.sourceTypes.find((t) => t.slug === c.type)?.name;
+      li.append(open, Object.assign(document.createElement("span"), { className: "muted", textContent: [c.date, c.on && `on ${c.on}`, type, c.draft && "hidden draft"].filter(Boolean).join(" · ") }));
+      return li;
+    })
+  );
+  if (!commentary.length) commentaryList.innerHTML = '<li class="muted">None yet.</li>';
 
   const noteList = $("note-list");
   noteList.replaceChildren(
@@ -943,7 +998,7 @@ async function showReferences() {
 // Back returns to wherever this kind of document is listed.
 let backTo = showHome;
 function showWrite(d) {
-  backTo = ["post", "note", "visual"].includes(kindOf(d)) ? showHome : showSite;
+  backTo = HOME_KINDS.includes(kindOf(d)) ? showHome : showSite;
   showView("write");
   $("write").classList.remove("done");
   fields.title.readOnly = false;
@@ -957,7 +1012,8 @@ function showWrite(d) {
   if (kind === "text") {
     if (textInfo(d.file)?.inline) fields.inline.focus();
     else editor.commands.focus("end");
-  } else if (!d.meta?.title) fields.title.focus();
+  } else if (kind === "commentary" && !d.meta?.source?.url) $("source-url").focus();
+  else if (!d.meta?.title) fields.title.focus();
   else if (sourceMode) sourceBox.focus();
   else editor.commands.focus("end");
 }
@@ -971,6 +1027,9 @@ async function openPost(file) {
 async function openNote(file) {
   showWrite(await api("GET", `/api/note?file=${encodeURIComponent(file)}`));
 }
+async function openCommentary(file) {
+  showWrite(await api("GET", `/api/commentary?file=${encodeURIComponent(file)}`));
+}
 async function openProject(slug) {
   showWrite(await api("GET", `/api/project?slug=${encodeURIComponent(slug)}`));
 }
@@ -982,6 +1041,7 @@ async function openText(name) {
 }
 
 $("new-post").addEventListener("click", () => showWrite({ id: null, kind: "post", file: null, meta: {}, body: "" }));
+$("new-commentary").addEventListener("click", () => showWrite({ id: null, kind: "commentary", file: null, meta: {}, body: "" }));
 $("new-visual").addEventListener("click", () => showWrite({ id: null, kind: "visual", file: null, meta: {}, body: "" }));
 $("new-project").addEventListener("click", () => showWrite({ id: null, kind: "project", file: null, meta: { status: "active" }, body: "" }));
 $("go-site").addEventListener("click", showSite);

@@ -1,0 +1,33 @@
+---
+layout: layouts/base.njk
+---
+<article class="post commentary-page h-entry" data-pagefind-body>
+  <header class="note-header">
+    <p class="note-kicker"><a href="/commentary/">Commentary</a></p>
+    <h1 class="p-name">{{ title }}</h1>
+    <span class="post-meta"><time class="dt-published" datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time>{% if draft %}<span class="draft">Draft</span>{% endif %}</span>
+  </header>
+
+  {%- set withPlayer = 'class="moment"' not in content %}
+  {% include "partials/source-card.njk" %}
+
+  <div class="post-body e-content">
+    {{ content | safe }}
+  </div>
+
+  {%- set linkers = collections.backlinks[page.fileSlug] %}
+  {%- if linkers and linkers | length %}
+  <section class="backlinks" aria-labelledby="backlinks-heading">
+    <h2 id="backlinks-heading">Linked from</h2>
+    <ul>
+      {%- for p in linkers %}<li><a class="xref" data-xref="{{ p.fileSlug }}" href="{{ p.url }}">{{ p.data.title }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
+  {%- if tags and tags | length %}
+  <p class="post-tags">Tags:
+    {%- for tag in tags %} <a href="{{ tag | tagUrl }}">{{ tag | replace("/", " / ") }}</a>{% if not loop.last %},{% endif %}{% endfor %}
+  </p>
+  {%- endif %}
+</article>

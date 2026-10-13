@@ -13,6 +13,7 @@ import * as notes from "./lib/notes.js";
 import * as seo from "./lib/seo.js";
 import * as cards from "./lib/cards.js";
 import * as visuals from "./lib/visuals.js";
+import * as commentary from "./lib/commentary.js";
 import { isPreview } from "./lib/preview.js";
 import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
@@ -69,6 +70,17 @@ const allVisuals = (api) => {
     if (problems.length) throw new Error(`Visual src/visuals/${item.fileSlug}/: ${problems.join("; ")}`);
   }
   return items.sort((a, b) => b.date - a.date);
+};
+
+const commentaryGlob = "src/commentary/*.md";
+const allCommentary = (api) => {
+  const items = api.getFilteredByGlob(commentaryGlob);
+  for (const item of items) {
+    const body = readFileSync(item.inputPath, "utf8").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+    const problems = commentary.problems(item.data, body);
+    if (problems.length) throw new Error(`Commentary ${item.inputPath}: ${problems.join("; ")}`);
+  }
+  return items.reverse();
 };
 
 const postsGlob = "src/blog/*.md";
@@ -146,19 +158,20 @@ export default function (eleventyConfig) {
         );
       }
     }
-    visuals.checkUses([...posts, ...allProjects(api), ...allNotes(api)], new Set(allVisuals(api).map((v) => v.fileSlug)));
+    visuals.checkUses([...posts, ...allProjects(api), ...allNotes(api), ...allCommentary(api)], new Set(allVisuals(api).map((v) => v.fileSlug)));
     return posts;
   });
   eleventyConfig.addCollection("projects", allProjects);
   eleventyConfig.addCollection("visuals", allVisuals);
   // slug → posts, projects and notes that show the visual.
-  eleventyConfig.addCollection("visualUses", (api) => visuals.uses([...allPosts(api), ...allProjects(api), ...allNotes(api)]));
+  eleventyConfig.addCollection("visualUses", (api) => visuals.uses([...allPosts(api), ...allProjects(api), ...allNotes(api), ...allCommentary(api)]));
   eleventyConfig.addCollection("notes", allNotes);
   eleventyConfig.addCollection("noteKinds", (api) => notes.kinds(allNotes(api)));
+  eleventyConfig.addCollection("commentary", allCommentary);
   // slug → posts, projects and notes that link to it with [[slug]], newest first.
   eleventyConfig.addCollection("backlinks", (api) => {
     const map = {};
-    for (const post of [...allPosts(api), ...allProjects(api), ...allNotes(api), ...allVisuals(api)]) {
+    for (const post of [...allPosts(api), ...allProjects(api), ...allNotes(api), ...allVisuals(api), ...allCommentary(api)]) {
       for (const slug of new Set(xref.linksIn(readFileSync(post.inputPath, "utf8")))) (map[slug] ??= []).push(post);
     }
     return map;
@@ -166,7 +179,7 @@ export default function (eleventyConfig) {
   for (const slug of levelSlugs) {
     eleventyConfig.addCollection(`level-${slug}`, (api) => allPosts(api).filter((p) => p.data.level === slug));
   }
-  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allNotes(api), ...allVisuals(api)]));
+  eleventyConfig.addCollection("tagList", (api) => tags.list([...allPosts(api), ...allNotes(api), ...allVisuals(api), ...allCommentary(api)]));
 
   // {% visual "slug" %} or {% visual "slug", "Your caption" %}: the visual with a Run button.
   let visualsBySlug = new Map();
@@ -184,6 +197,38 @@ export default function (eleventyConfig) {
     }
   });
   eleventyConfig.addFilter("visualFigure", (slug, live) => visualFigure(slug, { live }));
+
+  // Commentary quotes its source in place: {% excerpt %}words{% endexcerpt %} and
+  // {% moment "12:34", "13:10" %}words{% endmoment %}; see lib/commentary.js.
+  eleventyConfig.addPairedShortcode("excerpt", function (content) {
+    try {
+      return commentary.excerpt(content, this.ctx?.source);
+    } catch (e) {
+      throw new Error(`${this.page.inputPath}: ${e.message}`);
+    }
+  });
+  eleventyConfig.addPairedShortcode("moment", function (content, start, end) {
+    try {
+      return commentary.moment(content, start, end, this.ctx?.source);
+    } catch (e) {
+      throw new Error(`${this.page.inputPath}: ${e.message}`);
+    }
+  });
+  eleventyConfig.addFilter("sourceType", commentary.typeName);
+  eleventyConfig.addFilter("sourcePlayer", (source) => commentary.player(source));
+  eleventyConfig.addFilter("sourceText", (text) =>
+    String(text ?? "")
+      .trim()
+      .split(/\n\s*\n/)
+      .map((p) => `<p>${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")}</p>`)
+      .join("")
+  );
+  // A commentary's own words: the page without its quotes or the card describing the source.
+  eleventyConfig.addFilter("ownWords", (html) =>
+    String(html)
+      .replace(/<aside class="source-card[\s\S]*?<\/aside>/g, "")
+      .replace(/<figure class="(?:excerpt|moment)">[\s\S]*?<\/figure>/g, "")
+  );
 
   // {% annotate "wcf 1.4", "exact phrase", "qualified" %}Your note{% endannotate %}
   eleventyConfig.addPairedShortcode("annotate", function (note, ref, phrase, stance) {
@@ -203,6 +248,7 @@ export default function (eleventyConfig) {
       projects: allProjects(api),
       notes: allNotes(api),
       visuals: allVisuals(api),
+      commentary: allCommentary(api),
       passages: annotations.collect(allPosts(api)),
       levels,
     })
@@ -234,6 +280,7 @@ export default function (eleventyConfig) {
       ...allProjects(api).map((p) => ({ url: p.url, title: p.data.title, label: ["Project", statusName[p.data.status]].filter(Boolean).join(" · ") })),
       ...allNotes(api).map((f) => ({ url: f.url, title: f.data.title, label: ["Note", f.data.kind].filter(Boolean).join(" · "), credit: f.data.by, quote: Boolean(f.data.by) })),
       ...allVisuals(api).map((v) => ({ url: v.url, title: v.data.title, label: "Visual" })),
+      ...allCommentary(api).map((c) => ({ url: c.url, title: c.data.title, label: `Commentary · ${commentary.typeName(c.data.source.type)}` })),
     ].filter((c) => c.url);
     return shareCards;
   });
@@ -291,6 +338,12 @@ export default function (eleventyConfig) {
     outputPath: "/notes/feed.xml",
     collection: { name: "notes", limit: 50 },
     metadata: { ...feedMeta("Notes"), title: `${site.title}: Notes` },
+  });
+  eleventyConfig.addPlugin(feedPlugin, {
+    type: "atom",
+    outputPath: "/commentary/feed.xml",
+    collection: { name: "commentary", limit: 50 },
+    metadata: { ...feedMeta("Commentary"), title: `${site.title}: Commentary` },
   });
   for (const l of levels) {
     eleventyConfig.addPlugin(feedPlugin, {

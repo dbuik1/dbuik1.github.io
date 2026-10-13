@@ -1,0 +1,11 @@
+---
+layout: layouts/page.njk
+title: Commentary
+eleventyComputed:
+  description: "{{ ('commentary-intro' | siteText | excerpt) or 'David Buik on articles, videos, podcasts and posts, with each source shown.' }}"
+permalink: /commentary/
+---
+{{ "commentary-intro" | siteText | safe }}
+{%- set commentaryList = collections.commentary %}
+{% include "partials/commentary-list.njk" %}
+<p class="subscribe"><a href="/commentary/feed.xml">Subscribe to commentary</a></p>

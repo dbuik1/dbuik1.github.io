@@ -29,6 +29,16 @@ This is the personal website of {{ (site.author) | safe }}. Writing is grouped b
 - [{{ (p.data.title) | safe }}]({{ (site.url) | safe }}{{ (p.url) | safe }}): {% if p.data.summary %}{{ (p.data.summary) | safe }} {% endif %}({{ (st.name) | safe }})
 {% endfor -%}
 {%- endif %}
+{%- if collections.commentary | length %}
+
+## Commentary
+
+Responses to articles, videos, podcasts and posts elsewhere, each naming its source.
+
+{% for c in collections.commentary | head(50) -%}
+- [{{ (c.data.title) | safe }}]({{ (site.url) | safe }}{{ (c.url) | safe }}): on “{{ (c.data.source.title) | safe }}”{% if c.data.source.site %}, {{ (c.data.source.site) | safe }}{% endif %} ({{ (c.data.source.url) | safe }})
+{% endfor -%}
+{%- endif %}
 {%- if collections.notes | length %}
 
 ## Notes

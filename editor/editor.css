@@ -299,3 +299,18 @@ select, .details input, .more input, .picker input, .picker textarea {
 .editor-visual .visual-run { pointer-events: none; }
 .editor-visual figcaption .link-button { font-size: 0.875rem; }
 .drop-zone.compact { padding: 0.5rem 0.9rem; min-height: 0; font-size: 0.9375rem; }
+
+/* Commentary: the source it responds to, and the quotes in the text */
+.source-panel { display: grid; gap: 0.4rem; margin: 0.5rem 0 1rem; }
+.source-panel .add-row { margin-top: 0; }
+.source-panel #source-url { flex: 1; min-width: 0; font: inherit; padding: 0.45rem 0.6rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.source-details summary { cursor: pointer; font-family: var(--font-label); font-size: 0.9375rem; color: var(--muted); }
+.source-details .more-grid { font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); }
+.source-details label { display: inline-flex; align-items: center; gap: 0.4rem; }
+.source-details .wide input { flex: 1; }
+.source-details .note-field { display: grid; align-items: stretch; }
+.source-details[hidden], .source-details .note-field[hidden] { display: none; }
+.editor-clip { margin: 1rem 0; display: grid; gap: 0.3rem; }
+.editor-clip blockquote { margin: 0; padding-left: 1rem; border-left: 3px solid var(--mark); }
+.editor-clip figcaption { font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); display: flex; gap: 0.5rem; align-items: baseline; }
+.editor-clip.ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 4px; }

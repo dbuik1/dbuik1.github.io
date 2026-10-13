@@ -53,7 +53,7 @@
     const map = [];
     let text = "";
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (node.parentElement.closest("figure.annotation, .footnotes, .bibliography, .footnote-ref")) continue;
+      if (node.parentElement.closest("figure.annotation, figure.excerpt, figure.moment, .source-card, .footnotes, .bibliography, .footnote-ref")) continue;
       const s = node.data;
       for (let i = 0; i < s.length; i++) {
         const c = /\s/.test(s[i]) ? " " : normalise(s[i]);

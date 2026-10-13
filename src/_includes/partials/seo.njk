@@ -6,6 +6,7 @@
 {%- elif summary %}{% set seoDescription = summary | clip %}
 {%- elif page.url == "/" %}{% set seoDescription = "home-about" | siteText | excerpt %}
 {%- elif seoKind == "note" %}{% set seoDescription = (title + (" – " + by if by else "")) | clip %}
+{%- elif seoKind == "commentary" %}{% set seoDescription = (content | ownWords | excerpt) or (("On " + source.title) | clip) %}
 {%- elif seoKind != "page" %}{% set seoDescription = content | excerpt %}
 {%- endif %}
 {%- set seoDescription = seoDescription or site.description %}
@@ -53,7 +54,8 @@
     section: (lvl.name if lvl else (st.name if st else null)),
     sectionUrl: ("/blog/" + lvl.slug + "/" if lvl else null),
     wordCount: (content | wordCount if seoKind == "post" else null),
-    by: by, source: (source | noteSource | plain if source and seoKind == "note" else null)
+    by: by, source: (source | noteSource | plain if source and seoKind == "note" else null),
+    commentsOn: (source if seoKind == "commentary" else null)
   } | structuredData %}
   {%- if ld %}
   <script type="application/ld+json">{{ ld | safe }}</script>

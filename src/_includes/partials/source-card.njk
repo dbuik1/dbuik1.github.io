@@ -1,0 +1,20 @@
+{#- Expects `source`, and `withPlayer` when the whole video should be playable here. -#}
+<aside class="source-card h-cite" aria-label="What this responds to">
+  {%- if withPlayer %}{{ source | sourcePlayer | safe }}{% endif %}
+  {%- if source.text %}
+  <blockquote class="source-text p-content" cite="{{ source.url }}">{{ source.text | sourceText | safe }}</blockquote>
+  {%- endif %}
+  <p class="source-title"><span class="source-type">{{ source.type | sourceType }}</span> <a class="p-name u-url" href="{{ source.url }}" rel="noopener"{% if source.archived %} data-versionurl="{{ source.archived }}"{% if source.archivedOn %} data-versiondate="{{ source.archivedOn | isoDate }}"{% endif %}{% endif %}>{{ source.title }}</a></p>
+  {%- if source.author or source.site or source.published %}
+  <p class="source-meta">
+    {%- if source.author %}<span class="p-author h-card">{{ source.author }}</span>{% endif %}
+    {%- if source.author and (source.site or source.published) %}, {% endif %}
+    {%- if source.site %}<span class="p-publication">{{ source.site }}</span>{% endif %}
+    {%- if source.site and source.published %}, {% endif %}
+    {%- if source.published %}<time class="dt-published" datetime="{{ source.published | isoDate }}">{{ source.published | readableDate }}</time>{% endif %}
+  </p>
+  {%- endif %}
+  {%- if source.archived %}
+  <p class="source-archive"><a href="{{ source.archived }}" rel="noopener" data-originalurl="{{ source.url }}"{% if source.archivedOn %} data-versiondate="{{ source.archivedOn | isoDate }}"{% endif %}>Saved copy{% if source.archivedOn %} from {{ source.archivedOn | readableDate }}{% endif %}</a></p>
+  {%- endif %}
+</aside>

@@ -1,6 +1,7 @@
 import { feedPlugin } from "@11ty/eleventy-plugin-rss";
 import site from "./src/_data/site.js";
 import levels from "./src/_data/levels.js";
+import importances from "./src/_data/importances.js";
 import statuses from "./src/_data/statuses.js";
 import { eleventyImageTransformPlugin } from "@11ty/eleventy-img";
 import * as annotations from "./lib/annotations.js";
@@ -19,15 +20,19 @@ import { readFileSync } from "node:fs";
 import { configure as configureMarkdown } from "./lib/markdown.js";
 
 const levelSlugs = levels.map((l) => l.slug);
+const importanceSlugs = importances.map((i) => i.slug);
 const statusSlugs = statuses.map((s) => s.slug);
 
 function checkPost(item) {
   const file = item.inputPath;
-  const { title, level, history } = item.data;
+  const { title, level, importance, history } = item.data;
   const problems = [];
   if (!title) problems.push("missing `title`");
   if (!levelSlugs.includes(level)) {
     problems.push(`\`level\` is "${level ?? ""}", expected one of: ${levelSlugs.join(", ")}`);
+  }
+  if (!importanceSlugs.includes(importance)) {
+    problems.push(`\`importance\` is "${importance ?? ""}", expected one of: ${importanceSlugs.join(", ")}`);
   }
   problems.push(...tags.problems(item.data.tags));
   if (history !== undefined && !(Array.isArray(history) && history.every((h) => levelSlugs.includes(h?.level) && !isNaN(new Date(h?.date))))) {
@@ -323,6 +328,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("latest", (history) => (Array.isArray(history) && history.length ? history.at(-1) : null));
   eleventyConfig.addFilter("byFileSlug", (items, slug) => items.filter((i) => i.fileSlug === slug));
   eleventyConfig.addFilter("byStatus", (projects, status) => projects.filter((p) => p.data.status === status));
+  eleventyConfig.addFilter("inSquare", (posts, level, importance) => posts.filter((p) => p.data.level === level && p.data.importance === importance));
   eleventyConfig.addFilter("byProject", (posts, slug) => posts.filter((p) => p.data.project === slug));
   eleventyConfig.addFilter("inSeries", (posts, series) => posts.filter((p) => p.data.series === series).reverse());
 

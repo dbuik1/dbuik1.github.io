@@ -25,6 +25,7 @@ import * as commentary from "../lib/commentary.js";
 import * as sources from "./sources.js";
 import site from "../src/_data/site.js";
 import levels from "../src/_data/levels.js";
+import importances from "../src/_data/importances.js";
 import statuses from "../src/_data/statuses.js";
 
 const run = promisify(execFile);
@@ -443,7 +444,7 @@ async function saveDraft({ id, kind, file, meta, body, base }) {
 
 // ---- Front matter ----
 
-const FIELD_ORDER = ["title", "kind", "by", "source", "description", "level", "history", "tags", "project", "series", "visual", "status", "summary", "links"];
+const FIELD_ORDER = ["title", "kind", "by", "source", "description", "level", "importance", "history", "tags", "project", "series", "visual", "status", "summary", "links"];
 const yamlString = (s) => (/^[A-Za-z0-9][\w .,'’()?!-]*$/.test(s) && !/: /.test(s) ? s : JSON.stringify(s));
 
 function frontMatter(meta) {
@@ -486,6 +487,7 @@ function checkMeta(meta) {
   const problems = [];
   if (!meta.title?.trim()) problems.push("Add a title.");
   if (!levels.some((l) => l.slug === meta.level)) problems.push("Choose a research level.");
+  if (!importances.some((i) => i.slug === meta.importance)) problems.push("Choose an importance.");
   problems.push(...tagTools.problems(meta.tags).map((p) => `Tags: ${p}.`));
   if (!slugify(meta.slug || meta.title || "")) problems.push("The address can't be empty.");
   if (problems.length) throw new UserError(problems.join(" "));
@@ -897,6 +899,7 @@ async function meta() {
   return {
     siteUrl: site.url,
     levels,
+    importances,
     statuses,
     texts: texts.texts,
     stances: annotations.stances,

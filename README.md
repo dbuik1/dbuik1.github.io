@@ -20,7 +20,7 @@ npm run write    # then open http://127.0.0.1:8081/
 ```
 
 - **New post** opens a blank post. Write in the box as you would in any word processor; the toolbar has headings, quotes, lists and links.
-- Research level and tags sit under the title. Description, address, project and series are under **More details**.
+- Research level, importance and tags sit under the title. Description, address, project and series are under **More details**.
 - **Image** inserts a picture after the paragraph you're in. You can also paste or drag one into the text. Every image needs a short description for people who can't see it; the caption is optional. Images are saved in `src/images/` and committed with the post that uses them.
 - **Footnote** adds a numbered footnote at the cursor.
 - **Cite** adds a citation from your reference library at the cursor, with an optional page, chapter, section or paragraph. Citations become footnotes in Chicago notes style: the full reference the first time a source is cited, a short form after that. A post that cites anything gets a bibliography at the end. You can add a new source from the Cite box without leaving the post.
@@ -55,6 +55,7 @@ Start the file with this block, then write the post below it in Markdown:
 ---
 title: On Scripture
 level: explored
+importance: high
 tags: [theology/scripture, westminster]
 description: One line for link previews and search results.
 ---
@@ -66,6 +67,7 @@ Your post starts here.
 | --- | --- | --- |
 | `title` | Yes | The post's title |
 | `level` | Yes | `unexplored` (Unexplored), `explored` (Explored) or `researched` (Researched) |
+| `importance` | Yes | `low` (Low), `medium` (Medium) or `high` (High): how much the post matters to you. The post shows it beside the level |
 | `tags` | No | Any words, in square brackets, separated by commas. Nest them with a slash: `theology/church` also files the post under `theology` |
 | `history` | No | Written by the editor when a published post changes level: a list of `level` and `date` pairs. The post shows the date of the last one |
 | `description` | No | One line for search results and link previews. Left out, the post's first paragraph is used |
@@ -74,6 +76,8 @@ Your post starts here.
 | `draft` | No | `true` keeps the post off the live site; remove the line to publish |
 
 Writing is grouped by research level: the Writing page lists Researched first, and each level has its own page and feed at `/blog/<level>/`.
+
+The Search page has a grid of posts by research level (across) and importance (up), with the number of posts in each square. Readers pick squares, or a whole row or column by its label, and the results narrow to posts in those squares, together with any words typed in the search box. A post's importance links to its square.
 
 If a required field is missing or misspelled, the build stops and names the file and field. The live site stays as it was until it's fixed.
 
@@ -284,8 +288,8 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `extension/` | The Chrome extension that captures pages for commentary. Its fixed ID comes from the `key` in its manifest, and the editor accepts captures only from that ID |
 | `editor/` | The writing editor (`npm run write`): `server.js` reads and writes posts, projects, commentary, notes, visuals, site text, images and the reference library, and `sources.js` looks up and archives the sources commentary responds to; the rest is the page |
 | `tools/chokidar-globs/` | A small stand-in for the file watcher behind `npm start`, so the project has no known security warnings. Leave it in place |
-| `src/search.njk` | Search page. [Pagefind](https://pagefind.app) indexes posts, projects, commentary, notes and visuals after each build |
-| `src/_data/levels.js`, `statuses.js` | Research level and project status names |
+| `src/search.njk`, `src/js/search.js` | Search page and its level and importance grid. [Pagefind](https://pagefind.app) indexes posts, projects, commentary, notes and visuals after each build |
+| `src/_data/levels.js`, `importances.js`, `statuses.js` | Research level, importance and project status names |
 | `lib/tags.js` | Nested tags: their pages, counts and checks |
 | `src/_includes/layouts/` | Page templates: `base` (shell), `page`, `post`, `project`, `commentary`, `note`, `visual` |
 | `src/CNAME`, `src/app-ads.txt` | Copied to the site root unchanged |

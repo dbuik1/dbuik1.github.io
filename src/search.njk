@@ -5,10 +5,30 @@ description: Search the writing and projects on this site.
 permalink: /search/
 noindex: true
 ---
-<link rel="stylesheet" href="/pagefind/pagefind-ui.css">
-<div id="search" class="search"></div>
+{%- if collections.posts | length %}
+{#- Posts by research level (left to right) and importance (bottom to top). #}
+<div class="square-grid" id="square-grid" hidden>
+  <span class="axis-title y-title" id="importance-axis">Importance</span>
+  {%- for i in importances | reverse %}
+  <button type="button" class="axis row" data-importance="{{ i.slug }}" aria-describedby="importance-axis" aria-pressed="false">{{ i.name }}</button>
+  {%- for l in levels %}
+  {%- set count = collections.posts | inSquare(l.slug, i.slug) | length %}
+  <button type="button" class="square" data-level="{{ l.slug }}" data-importance="{{ i.slug }}" aria-pressed="false" aria-label="{{ l.name }}, {{ i.name }} importance: {{ count }} {{ 'post' if count == 1 else 'posts' }}"{% if not count %} disabled{% endif %}>{{ count }}</button>
+  {%- endfor %}
+  {%- endfor %}
+  <button type="button" class="clear" hidden>Clear</button>
+  {%- for l in levels %}
+  <button type="button" class="axis col" data-level="{{ l.slug }}" aria-describedby="level-axis" aria-pressed="false">{{ l.name }}</button>
+  {%- endfor %}
+  <span class="axis-title x-title" id="level-axis">Research level</span>
+</div>
+{%- endif %}
+<form class="search" role="search" id="search" hidden>
+  <label class="visually-hidden" for="search-input">Search this site</label>
+  <input id="search-input" type="search" placeholder="Search" autocomplete="off" autofocus>
+  <p class="search-status" id="search-status" aria-live="polite"></p>
+  <ul class="post-list search-results" id="search-results"></ul>
+  <button type="button" class="search-more" id="search-more" hidden>More results</button>
+</form>
 <noscript><p>Search needs JavaScript. You can also browse <a href="/blog/">all writing</a> or the <a href="/tags/">tags</a>.</p></noscript>
-<script src="/pagefind/pagefind-ui.js"></script>
-<script>
-  new PagefindUI({ element: "#search", showSubResults: true, showImages: false, autofocus: true, resetStyles: false });
-</script>
+<script type="module" src="/js/search.js"></script>

@@ -93,6 +93,7 @@ let dirty = false;
 const fields = {
   title: $("title"),
   level: $("level"),
+  importance: $("importance"),
   description: $("description"),
   slug: $("slug"),
   project: $("project"),
@@ -112,6 +113,7 @@ let links = [];
 
 const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
 fields.level.append(option("", "Choose…"), ...meta.levels.map((l) => option(l.slug, l.name)));
+fields.importance.append(option("", "Choose…"), ...meta.importances.map((i) => option(i.slug, i.name)));
 fields.project.append(...meta.projects.map((p) => option(p.slug, p.title || p.slug)));
 fields.postVisual.append(...meta.visuals.map((v) => option(v.slug, v.title || v.slug)));
 fields.status.append(option("", "Choose…"), ...meta.statuses.map((x) => option(x.slug, x.name)));
@@ -213,7 +215,7 @@ function levelHint() {
   hint.hidden = !text;
 }
 fields.level.addEventListener("change", levelHint);
-for (const el of [fields.kind, fields.by, fields.source, fields.level, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline, fields.postVisual, fields.visualDescription]) {
+for (const el of [fields.kind, fields.by, fields.source, fields.level, fields.importance, fields.description, fields.project, fields.series, fields.status, fields.summary, fields.inline, fields.postVisual, fields.visualDescription]) {
   el.addEventListener("input", changed);
 }
 
@@ -281,6 +283,7 @@ function collect() {
     ...(doc?.meta ?? {}),
     title: fields.title.value.trim(),
     level: fields.level.value,
+    importance: fields.importance.value,
     tags: [...tags],
     description: fields.description.value.trim(),
     project: fields.project.value,
@@ -353,6 +356,7 @@ function fill(d) {
   fields.title.value = m.title ?? "";
   fields.title.placeholder = { note: "The note in one line", commentary: "Your headline" }[kind] ?? "Title";
   fields.level.value = m.level ?? "";
+  fields.importance.value = m.importance ?? "";
   levelHint();
   fields.description.value = kind === "post" ? m.description ?? "" : "";
   fields.project.value = m.project ?? "";

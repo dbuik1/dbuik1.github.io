@@ -2,6 +2,7 @@
 title: Example post
 description: One line for link previews and search results.
 level: unexplored
+importance: medium
 tags: [example]
 draft: true
 ---

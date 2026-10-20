@@ -1,11 +1,13 @@
 ---
 layout: layouts/base.njk
 ---
-{%- set p = { date: page.date, data: { level: level, history: history, draft: draft, project: project } } %}
+{%- set p = { date: page.date, data: { level: level, importance: importance, history: history, draft: draft, project: project } } %}
 <article class="post" data-pagefind-body>
   <header class="post-header">
     <h1>{{ title }}</h1>
     {% include "partials/post-meta.njk" %}
+    {#- Places the post in a square of the grid on the Search page. #}
+    <span hidden data-pagefind-filter="square:{{ level }} {{ importance }}"></span>
     {%- if 'class="annotation"' in content %}
     <div class="anno-toggle" hidden>
       <span id="anno-mode-label">Annotations</span>

@@ -1,10 +1,12 @@
 {#- Expects `p` (a post) in scope. -#}
 {%- set lvl = levels | byField("slug", p.data.level) | first -%}
+{%- set weight = importances | byField("slug", p.data.importance) | first -%}
 {%- set grew = p.data.history | latest -%}
-<span class="post-meta">
+<span class="post-meta" data-pagefind-ignore>
   <time datetime="{{ p.date | isoDate }}">{{ p.date | readableDate }}</time>
   {%- if lvl %}<a class="level" href="/blog/{{ lvl.slug }}/">{{ lvl.name }}</a>{% endif %}
   {%- if grew and grew.level == p.data.level %}<span class="since">since <time datetime="{{ grew.date | isoDate }}">{{ grew.date | readableDate }}</time></span>{% endif %}
+  {%- if lvl and weight %}<a class="importance" href="/search/?level={{ lvl.slug }}&amp;importance={{ weight.slug }}">{{ weight.name }} importance</a>{% endif %}
   {%- if p.data.project %}{% set proj = collections.projects | byFileSlug(p.data.project) | first %}{% if proj %}<a class="proj" href="{{ proj.url }}">{{ proj.data.title }}</a>{% endif %}{% endif %}
   {%- if p.data.draft %}<span class="draft">Draft</span>{% endif %}
 </span>

@@ -165,9 +165,6 @@ main { display: grid; gap: 3rem; }
 .post-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-family: var(--font-label); }
 
 
-.levels { margin: 0; display: grid; gap: 1rem; }
-.levels dt { font-weight: 700; color: var(--accent); }
-.levels dd { margin: 0.25rem 0 0; }
 
 /* Projects */
 .project-group { display: grid; gap: 0.75rem; }
@@ -326,7 +323,6 @@ html.reader-open { overflow: hidden; }
 .level-group h2 a { color: inherit; text-decoration: none; }
 .level-group h2 a:hover { text-decoration: underline; text-decoration-color: var(--accent); }
 .count { color: var(--muted); font-family: var(--font-label); font-size: 0.875rem; font-weight: 400; }
-.level-intro { color: var(--muted); }
 .post-meta .since { color: var(--muted); }
 .post-meta .importance { color: var(--muted); text-decoration: none; }
 .post-meta .importance:hover { text-decoration: underline; }

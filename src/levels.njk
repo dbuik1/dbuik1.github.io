@@ -6,11 +6,10 @@ eleventyComputed:
 permalink: /levels/
 ---
 {{ "levels-intro" | siteText | safe }}
-<dl class="levels">
-  {%- for l in levels %}
-  <div id="{{ l.slug }}">
-    <dt>{{ l.name }}</dt>
-    <dd>{{ ("level-" + l.slug) | siteText | safe }}</dd>
-  </div>
-  {%- endfor %}
-</dl>
+{%- for l in levels %}
+{%- set count = collections["level-" + l.slug] | length %}
+<section class="level-group" id="{{ l.slug }}" aria-labelledby="level-{{ l.slug }}">
+  <h2 id="level-{{ l.slug }}">{% if count %}<a href="/blog/{{ l.slug }}/">{{ l.name }}</a> <span class="count">{{ count }}</span>{% else %}{{ l.name }}{% endif %}</h2>
+  <p>{{ ("level-" + l.slug) | siteText | safe }}</p>
+</section>
+{%- endfor %}

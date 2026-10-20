@@ -8,15 +8,15 @@ pagination:
 permalink: "/blog/{{ lvl.slug }}/"
 eleventyComputed:
   title: "{{ lvl.name }}"
-  description: "{{ (('level-' + lvl.slug) | siteText | excerpt) or ('Writing by David Buik marked ' + lvl.name + '.') }}"
+  description: "Writing by David Buik marked {{ lvl.name }}."
 ---
-<div class="level-intro">{{ ("level-" + lvl.slug) | siteText | safe }}</div>
 <nav class="filters" aria-label="Research levels">
   <a href="/blog/">All writing</a>
   {%- for l in levels | reverse %}
   <a href="/blog/{{ l.slug }}/"{% if l.slug == lvl.slug %} aria-current="page"{% endif %}>{{ l.name }}</a>
   {%- endfor %}
   <a href="/tags/">Tags</a>
+  <a href="/levels/#{{ lvl.slug }}">What the levels mean</a>
 </nav>
 {%- set postList = collections["level-" + lvl.slug] %}
 {% include "partials/post-list.njk" %}

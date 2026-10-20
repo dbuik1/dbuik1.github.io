@@ -131,8 +131,9 @@ function liveFile(kind, file) {
 function withLive(doc) {
   const kind = doc.kind ?? "post";
   const full = liveFile(kind, doc.file);
-  if (!full) return doc;
-  const raw = readFileSync(full, "utf8");
+  // A site text with no file yet is live too: the site shows its placeholder.
+  if (!full && !(kind === "text" && doc.file)) return doc;
+  const raw = full ? readFileSync(full, "utf8") : "";
   const { data, content } = kind === "text" ? { data: {}, content: raw } : matter(raw);
   const live = { title: data.title ?? null, body: content.replace(/^\n+/, "").trim(), hash: hash(raw) };
   const out = { ...doc, live, base: doc.base ?? (doc.updated ? null : live.hash) };
@@ -704,6 +705,12 @@ async function syncSite() {
 }
 const syncState = () => ({ error: sync.error, editorChanged: sync.editorChanged });
 
+// The editor's own code as committed when it started. Node keeps running that
+// version after a pull brings in a newer one, and the old code can write files
+// the site no longer reads or miss checks the build now makes.
+const editorCode = () => git("rev-parse", "HEAD:editor", "HEAD:lib", "HEAD:src/_data", "HEAD:package.json").catch(() => null);
+const startCode = await editorCode();
+
 async function readyToPublish() {
   const branch = await git("rev-parse", "--abbrev-ref", "HEAD");
   if (branch !== "main") throw new UserError(`The repository is on the branch “${branch}”. Switch to main to publish.`);
@@ -711,6 +718,11 @@ async function readyToPublish() {
     await git("pull", "--rebase", "--autostash", "--quiet");
   } catch (e) {
     throw new UserError(`Couldn't fetch the latest version of the site from GitHub: ${e.stderr || e.message}`);
+  }
+  if (startCode && (await editorCode()) !== startCode) {
+    throw new UserError(
+      "The editor has been updated since you started it, so nothing was published. Your draft is saved. Stop the editor with Ctrl+C in its window, run npm run write again, then open this again and publish."
+    );
   }
 }
 

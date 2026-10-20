@@ -418,7 +418,8 @@ function showLive(d) {
   let line;
   if (drafted) {
     const when = new Date(d.updated).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-    line = `These are your unpublished changes from ${when}. The site still shows the earlier version until you press ${update}, which replaces it.`;
+    const shown = kind === "text" && !live.body ? "the grey placeholder" : "the earlier version";
+    line = `These are your unpublished changes from ${when}. The site still shows ${shown} until you press ${update}, which replaces it.`;
     if (d.liveMoved) line += " The site's version has also changed since you started, so updating would overwrite that newer text. Check it first.";
   } else if (kind === "text" && !live.body) {
     line = `This is empty on the site, so the site shows the grey placeholder. What you write here replaces it when you press ${update}.`;

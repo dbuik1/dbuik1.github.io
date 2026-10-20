@@ -352,7 +352,7 @@ html.reader-open { overflow: hidden; }
 .key-commentary { background: var(--bg); outline: 2px solid var(--accent); outline-offset: -2px; }
 .key-source { background: var(--rule); outline: 1px solid var(--muted); outline-offset: -1px; }
 .key-visual { background: var(--disagree-fg); box-shadow: inset 0 0 0 2px var(--bg); outline: 1.5px solid var(--disagree-fg); }
-.graph-hint { color: var(--muted); }
+.graph-filters input { accent-color: var(--accent); }
 .graph-reset { margin-left: auto; font: inherit; color: var(--accent); background: none; border: 1px solid var(--rule); border-radius: 6px; padding: 0.2rem 0.6rem; cursor: pointer; }
 /* The graph uses the full width of the window, not just the text column. */
 .graph-frame { width: min(100vw - 2rem, 72rem); margin-left: 50%; transform: translateX(-50%); }

@@ -29,15 +29,15 @@ export default {
       url: "/blog/",
       children: [
         { label: "All writing", url: "/blog/" },
-        ...levels.map((l) => ({ label: l.name, url: `/blog/${l.slug}/` })),
-        // Hidden until the first commentary is published, so the menu never leads to an empty page.
+        // `hideWhenEmpty` names a collection: the item stays out of the menu until it has
+        // something in it, so the menu never leads to an empty page.
+        ...levels.map((l) => ({ label: l.name, url: `/blog/${l.slug}/`, hideWhenEmpty: `level-${l.slug}` })),
         { label: "Commentary", url: "/commentary/", hideWhenEmpty: "commentary" },
-        { label: "Notes", url: "/notes/" },
-        // Hidden until the first visual is published, so the menu never leads to an empty page.
+        { label: "Notes", url: "/notes/", hideWhenEmpty: "notes" },
         { label: "Visuals", url: "/visuals/", hideWhenEmpty: "visuals" },
       ],
     },
-    { label: "Projects", url: "/projects/" },
+    { label: "Projects", url: "/projects/", hideWhenEmpty: "projects" },
     { label: "Graph", url: "/graph/" },
     { label: "Search", url: "/search/" },
   ],

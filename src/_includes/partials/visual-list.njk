@@ -8,10 +8,13 @@
     <a class="visual-thumb" href="{{ v.url }}" tabindex="-1" aria-hidden="true"><img src="{{ v.url }}poster.png" alt="" loading="lazy" decoding="async"></a>
     {%- endif %}
     <a class="post-title" href="{{ v.url }}">{{ v.data.title }}</a>
+    {%- if usedBy | length or v.data.draft %}
     <span class="post-meta">
-      {%- if usedBy | length %}Used in {{ usedBy | length }} {{ "piece" if usedBy | length == 1 else "pieces" }} of writing{% else %}On its own{% endif %}
-      {%- if v.data.draft %} · <span class="draft">Draft</span>{% endif %}
+      {%- if usedBy | length %}Used in {{ usedBy | length }} {{ "piece" if usedBy | length == 1 else "pieces" }} of writing{% endif %}
+      {%- if usedBy | length and v.data.draft %} · {% endif %}
+      {%- if v.data.draft %}<span class="draft">Draft</span>{% endif %}
     </span>
+    {%- endif %}
   </li>
   {%- endfor %}
 </ul>

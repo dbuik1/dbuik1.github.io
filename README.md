@@ -281,7 +281,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/blog/` | Posts, plus the Writing page and a page per research level |
 | `src/projects/` | Projects, plus the Projects page |
 | `src/colophon.njk`, `src/feeds.njk`, `src/404.njk` | Footer pages and the not-found page |
-| `src/changelog.njk` | Changelog, built automatically from the commit history |
+| `src/changelog.njk` | Changelog, built automatically from the commits that change the site |
 | `texts/` | Confession and Bible texts that posts can annotate |
 | `lib/annotations.js`, `src/js/annotations.js` | The annotate shortcode and its build checks, and the Compact popups |
 | `src/annotations/` | The annotated passages pages |

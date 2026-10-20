@@ -1,10 +1,10 @@
 ---
 layout: layouts/page.njk
 title: Changelog
-description: Every change to this site, newest first.
+description: Changes to this site, newest first.
 permalink: /changelog/
 ---
-<p class="lede">Every change to this site, newest first, taken from its <a href="{{ site.repo }}">source history</a>.</p>
+<p class="lede">Changes to this site, newest first, taken from its <a href="{{ site.repo }}">source history</a>.</p>
 {%- for day in changelog %}
 <section class="changelog-day">
   <h2><time datetime="{{ day.date }}">{{ day.date | readableDate }}</time></h2>

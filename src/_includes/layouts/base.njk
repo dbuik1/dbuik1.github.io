@@ -36,7 +36,7 @@
               </ul>
             </details>
           </li>
-          {%- else %}
+          {%- elif not item.hideWhenEmpty or collections[item.hideWhenEmpty] | length %}
           <li><a href="{{ item.url }}"{% if item.url == page.url or (item.url != "/" and page.url.startsWith(item.url)) %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
           {%- endif %}
           {%- endfor %}

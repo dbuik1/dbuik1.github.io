@@ -6,6 +6,8 @@ layout: layouts/base.njk
   {{ "home-about" | siteText | safe }}
 </section>
 
+{#- Each section appears once it has something in it, so visitors never land on an empty list. -#}
+{%- if collections.posts | length %}
 <section class="home-section">
   <h2>Recent writing</h2>
   {%- set postList = collections.posts | head(5) %}
@@ -14,15 +16,16 @@ layout: layouts/base.njk
   <p class="more"><a href="/blog/">All writing</a></p>
   {%- endif %}
 </section>
+{%- endif %}
 
 {%- set active = collections.projects | byStatus("active") %}
+{%- if active | length %}
 <section class="home-section">
   <h2>Working on</h2>
-  {%- if active | length %}
   {%- set projectList = active %}
   {% include "partials/project-list.njk" %}
-  {%- else %}
-  <p class="empty">No active projects listed yet.</p>
-  {%- endif %}
+  {%- if collections.projects | length > active | length %}
   <p class="more"><a href="/projects/">All projects</a></p>
+  {%- endif %}
 </section>
+{%- endif %}

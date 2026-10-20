@@ -9,16 +9,16 @@ permalink: /graph/
   <div class="graph-controls">
     <fieldset class="graph-filters">
       <legend class="visually-hidden">Show</legend>
-      <label><input type="checkbox" data-kind="commentary" checked> <span class="graph-key key-commentary"></span>Commentary</label>
-      <label><input type="checkbox" data-kind="source" checked> <span class="graph-key key-source"></span>Sources</label>
-      <label><input type="checkbox" data-kind="note" checked> <span class="graph-key key-note"></span>Notes</label>
-      <label><input type="checkbox" data-kind="visual" checked> <span class="graph-key key-visual"></span>Visuals</label>
-      <label><input type="checkbox" data-kind="project" checked> <span class="graph-key key-project"></span>Projects</label>
-      <label><input type="checkbox" data-kind="tag" checked> <span class="graph-key key-tag"></span>Tags</label>
-      <label><input type="checkbox" data-kind="passage" checked> <span class="graph-key key-passage"></span>Passages</label>
+      {#- Only kinds the site has get a filter, so every box switches something. -#}
+      {%- for k in [["commentary", "Commentary"], ["source", "Sources"], ["note", "Notes"], ["visual", "Visuals"], ["project", "Projects"], ["tag", "Tags"], ["passage", "Passages"]] %}
+      {%- if collections.graph.nodes | byField("kind", k[0]) | length %}
+      <label><input type="checkbox" data-kind="{{ k[0] }}" checked> <span class="graph-key key-{{ k[0] }}"></span>{{ k[1] }}</label>
+      {%- endif %}
+      {%- endfor %}
+      {%- if collections.graph.nodes | byField("kind", "post") | length %}
       <span class="graph-key-static"><span class="graph-key key-post"></span>Posts</span>
+      {%- endif %}
     </fieldset>
-    <span class="graph-hint">Drag to move, scroll or pinch to zoom, select a dot to open it.</span>
     <button type="button" class="graph-reset" id="graph-reset">Fit to screen</button>
   </div>
   <div class="graph-frame">

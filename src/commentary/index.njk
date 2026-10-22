@@ -14,4 +14,3 @@ permalink: /commentary/
   {%- if persons | length %}<p>People: {% for g in persons %}<a href="{{ g.url }}">{{ g.name }} <span class="count">{{ g.count }}</span></a>{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
 </nav>
 {%- endif %}
-<p class="subscribe"><a href="/commentary/feed.xml">Subscribe to commentary</a></p>

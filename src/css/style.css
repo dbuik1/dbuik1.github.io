@@ -148,7 +148,7 @@ main { display: grid; gap: 3rem; }
 .filters a[aria-current="page"] { color: var(--fg); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 0.3em; }
 
 .empty { color: var(--muted); margin: 0; }
-.more, .subscribe { margin: 0; font-family: var(--font-label); }
+.more { margin: 0; font-family: var(--font-label); }
 
 .post { display: grid; gap: 1.5rem; }
 .post-header { display: grid; gap: 0.5rem; }

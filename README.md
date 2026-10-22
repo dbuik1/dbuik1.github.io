@@ -40,7 +40,7 @@ npm run write    # then open http://127.0.0.1:8081/
 - **More** has superscript, subscript, tables and HTML blocks. Inside a table, a row of table buttons appears (add or delete rows and columns, delete the table).
 - HTML is kept exactly as written. A block of HTML shows as a card with a live preview, and HTML inside a sentence (an `<abbr>`, a `<span>`) as a chip; click either, or press Enter on it, to edit the code.
 - **Source** switches to the post as plain Markdown and HTML, and **Rich text** switches back. If the formatted view can't hold something in a post (a code block, for example), the post opens in Source with a note saying so, and switching back asks first.
-- **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, the colophon, the introductions to the research levels, commentary, notes and visuals, each level's description, and projects. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
+- **Site text and projects** (on the editor's home screen) edits the home page introduction and paragraph, each section of the colophon (opening, research levels and each level's description, importance, notes, commentary, visuals), and projects. The colophon is the one place that explains the parts of the site; the section pages themselves have no introductions. The site text lives in `src/_text/`; while a text is empty, the site shows its grey placeholder.
 - **Reference library** lists your sources. Add one by pasting a DOI, an ISBN or a BibTeX entry. To bring in sources from Zotero, export them as BibTeX (the Better BibTeX add-on gives stable keys) and import the file; entries with the same key are replaced. Library changes are published with your next post, or straight away with **Publish library**.
 
 The rest of this section describes the file format the editor writes, for editing by hand.
@@ -103,7 +103,7 @@ Create the file in `src/blog/`, and the preview updates as you save. When you're
 
 ### Changing the labels
 
-Research level names are in `src/_data/levels.js`. Change a `name` there and every page picks it up. Each level's description is site text in `src/_text/level-<slug>.md`, edited in the editor under **Site text and projects**.
+Research level names are in `src/_data/levels.js`. Change a `name` there and every page picks it up. Each level's description is a section of the colophon (`/colophon/#<slug>`), site text in `src/_text/level-<slug>.md`, edited in the editor under **Site text and projects**.
 
 ### Images, footnotes and citations
 
@@ -268,7 +268,7 @@ The Projects page groups projects by status, and active ones also appear on the 
 | `src/_includes/layouts/base.njk` | The page shell shared by every page |
 | `src/css/style.css` | All styling; colours and fonts are tokens at the top |
 | `src/index.njk` | Home page |
-| `src/_text/` | Site text edited in the editor: home introduction and paragraph, colophon, introductions to research levels, commentary, notes and visuals, level descriptions |
+| `src/_text/` | Site text edited in the editor: home introduction and paragraph, and the colophon's sections (`colophon*.md`, `level-*.md`) |
 | `src/commentary/`, `lib/commentary.js`, `src/js/players.js` | Commentary: its pages and its pages per site and person, the `{% excerpt %}` and `{% moment %}` shortcodes and their checks, and the click-to-play video player |
 | `tools/check-sources.js`, `src/_data/sourceChecks.json` | The monthly check of commentary sources, and what it last found |
 | `src/notes/`, `lib/notes.js` | Notes, their pages and kinds |

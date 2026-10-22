@@ -1,15 +1,46 @@
 ---
 layout: layouts/page.njk
 title: Colophon
-description: How this site is made.
+description: How this site is made, and what its research levels, importance, notes, commentary and visuals are.
 permalink: /colophon/
 ---
 {{ "colophon" | siteText | safe }}
 
-<h2>Built with</h2>
+<section class="colophon-section" aria-labelledby="levels">
+  <h2 id="levels">Research levels</h2>
+  {{ "colophon-levels" | siteText | safe }}
+  {%- for l in levels %}
+  <h3 id="{{ l.slug }}">{% if collections["level-" + l.slug] | length %}<a href="/blog/{{ l.slug }}/">{{ l.name }}</a>{% else %}{{ l.name }}{% endif %}</h3>
+  <p>{{ ("level-" + l.slug) | siteText | safe }}</p>
+  {%- endfor %}
+</section>
+
+<section class="colophon-section" aria-labelledby="importance">
+  <h2 id="importance">Importance</h2>
+  {{ "colophon-importance" | siteText | safe }}
+</section>
+
+<section class="colophon-section" aria-labelledby="notes">
+  <h2 id="notes"><a href="/notes/">Notes</a></h2>
+  {{ "colophon-notes" | siteText | safe }}
+</section>
+
+<section class="colophon-section" aria-labelledby="commentary">
+  <h2 id="commentary"><a href="/commentary/">Commentary</a></h2>
+  {{ "colophon-commentary" | siteText | safe }}
+</section>
+
+<section class="colophon-section" aria-labelledby="visuals">
+  <h2 id="visuals"><a href="/visuals/">Visuals</a></h2>
+  {{ "colophon-visuals" | siteText | safe }}
+</section>
+
+<section class="colophon-section" aria-labelledby="built-with">
+<h2 id="built-with">Built with</h2>
 <ul>
   <li><a href="https://www.11ty.dev/">Eleventy</a> builds the pages from Markdown files.</li>
   <li><a href="https://pages.github.com/">GitHub Pages</a> hosts the site.</li>
   <li>Text is set in <a href="https://fonts.google.com/specimen/Alegreya+Sans">Alegreya Sans</a>.</li>
   <li>The <a href="{{ site.repo }}">source</a> is public, and the <a href="/changelog/">changelog</a> lists every change.</li>
 </ul>
+</section>

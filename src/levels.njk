@@ -1,15 +1,17 @@
 ---
-layout: layouts/page.njk
-title: Research levels
-eleventyComputed:
-  description: "{{ ('levels-intro' | siteText | excerpt) or 'What the research levels on David Buik’s site mean.' }}"
 permalink: /levels/
+eleventyExcludeFromCollections: true
 ---
-{{ "levels-intro" | siteText | safe }}
-{%- for l in levels %}
-{%- set count = collections["level-" + l.slug] | length %}
-<section class="level-group" id="{{ l.slug }}" aria-labelledby="level-{{ l.slug }}">
-  <h2 id="level-{{ l.slug }}">{% if count %}<a href="/blog/{{ l.slug }}/">{{ l.name }}</a> <span class="count">{{ count }}</span>{% else %}{{ l.name }}{% endif %}</h2>
-  <p>{{ ("level-" + l.slug) | siteText | safe }}</p>
-</section>
-{%- endfor %}
+{#- Research levels are explained in the colophon. Old links to /levels/, with or without a level anchor such as #unexplored, land on the matching colophon section. -#}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Research levels</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="{{ site.url }}/colophon/#levels">
+<meta http-equiv="refresh" content="0; url=/colophon/#levels">
+<script>location.replace("/colophon/" + (location.hash || "#levels"));</script>
+</head>
+<body><p><a href="/colophon/#levels">Research levels are explained in the colophon.</a></p></body>
+</html>

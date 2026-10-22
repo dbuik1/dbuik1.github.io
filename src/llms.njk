@@ -8,7 +8,7 @@ eleventyExcludeFromCollections: true
 
 > {{ (about or site.description) | safe }}
 
-This is the personal website of {{ (site.author) | safe }}. Writing is grouped by research level, from least to most researched: {% for l in levels %}{{ (l.name) | safe }}{% if not loop.last %}, {% endif %}{% endfor %} ({{ (site.url) | safe }}/levels/).
+This is the personal website of {{ (site.author) | safe }}. Writing is grouped by research level, from least to most researched: {% for l in levels %}{{ (l.name) | safe }}{% if not loop.last %}, {% endif %}{% endfor %} ({{ (site.url) | safe }}/colophon/#levels).
 {%- for l in levels | reverse %}
 {%- set group = collections["level-" + l.slug] %}
 {%- if group | length %}

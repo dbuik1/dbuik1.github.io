@@ -14,10 +14,8 @@ function urlsFor(file) {
   if ((m = file.match(/^src\/blog\/\d{4}-\d\d-\d\d-([^/]+)\.md$/))) return [`/blog/${m[1]}/`, "/blog/", "/"];
   if ((m = file.match(/^src\/projects\/([^/]+)\.md$/))) return [`/projects/${m[1]}/`, "/projects/", "/"];
   if ((m = file.match(/^src\/notes\/\d{4}-\d\d-\d\d-([^/]+)\.md$/))) return [`/notes/${m[1]}/`, "/notes/"];
-  if (file === "src/_text/colophon.md") return ["/colophon/"];
   if (file.startsWith("src/_text/home-")) return ["/"];
-  if (file.startsWith("src/_text/level")) return ["/levels/", "/blog/"];
-  if (file === "src/_text/notes-intro.md") return ["/notes/"];
+  if (file.startsWith("src/_text/colophon") || file.startsWith("src/_text/level-")) return ["/colophon/"];
   return [];
 }
 

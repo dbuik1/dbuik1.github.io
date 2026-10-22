@@ -1,10 +1,8 @@
 ---
 layout: layouts/page.njk
 title: Visuals
-eleventyComputed:
-  description: "{{ ('visuals-intro' | siteText | excerpt) or 'Animations, simulations and interactive diagrams by David Buik.' }}"
+description: Animations, simulations and interactive diagrams by David Buik.
 permalink: /visuals/
 ---
-{{ "visuals-intro" | siteText | safe }}
 {%- set visualList = collections.visuals %}
 {% include "partials/visual-list.njk" %}

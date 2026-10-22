@@ -1,11 +1,9 @@
 ---
 layout: layouts/page.njk
 title: Notes
-eleventyComputed:
-  description: "{{ ('notes-intro' | siteText | excerpt) or 'Pieces of knowledge and quotes David Buik keeps to build his writing on.' }}"
+description: Pieces of knowledge and quotes David Buik keeps to build his writing on.
 permalink: /notes/
 ---
-{{ "notes-intro" | siteText | safe }}
 {%- if collections.noteKinds | length %}
 <nav class="filters" aria-label="Kinds of note">
   <a href="/notes/" aria-current="page">All</a>

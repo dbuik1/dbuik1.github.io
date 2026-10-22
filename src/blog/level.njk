@@ -16,7 +16,7 @@ eleventyComputed:
   <a href="/blog/{{ l.slug }}/"{% if l.slug == lvl.slug %} aria-current="page"{% endif %}>{{ l.name }}</a>
   {%- endfor %}
   <a href="/tags/">Tags</a>
-  <a href="/levels/#{{ lvl.slug }}">What the levels mean</a>
+  <a href="/colophon/#{{ lvl.slug }}">What the levels mean</a>
 </nav>
 {%- set postList = collections["level-" + lvl.slug] %}
 {% include "partials/post-list.njk" %}

@@ -10,7 +10,7 @@ permalink: /blog/
   <a href="/blog/{{ l.slug }}/">{{ l.name }}</a>
   {%- endfor %}
   <a href="/tags/">Tags</a>
-  <a href="/levels/">What the levels mean</a>
+  <a href="/colophon/#levels">What the levels mean</a>
 </nav>
 {%- for l in levels | reverse %}
 {%- set postList = collections["level-" + l.slug] %}

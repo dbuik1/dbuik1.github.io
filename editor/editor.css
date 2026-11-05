@@ -114,6 +114,17 @@ select, .details input, .more input, .picker input, .picker textarea {
 .lia-status:empty { display: none; }
 .lia-status button { margin-left: 0.5rem; padding: 0.1rem 0.5rem; }
 .lia-status.error { color: var(--error-fg); }
+.lia-review { margin-top: 0.5rem; }
+.lia-review-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; }
+.lia-review-sum { flex: 1 1 12rem; font-weight: 500; }
+.lia-review-head button { font: inherit; padding: 0.3rem 0.75rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--fg); cursor: pointer; }
+.lia-review-head #lia-apply { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+.lia-review-note { color: var(--muted); margin-top: 0.25rem !important; }
+.lia-review-note:empty { display: none; }
+.lia-diff { margin-top: 0.5rem; max-height: 22rem; overflow: auto; padding: 0.5rem 0.75rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.875rem; line-height: 1.55; }
+.lia-diff del { background: var(--error-bg); color: var(--error-fg); text-decoration: line-through; }
+.lia-diff ins { background: var(--ok-bg); color: var(--ok-fg); text-decoration: underline; text-underline-offset: 2px; }
+.lia-diff .diff-gap { color: var(--muted); font-style: italic; }
 .toolbar .annotate-button { margin-left: auto; color: var(--accent); border-color: var(--rule); }
 
 #content .prose { min-height: 50vh; outline: none; }

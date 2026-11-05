@@ -94,6 +94,24 @@ select, .details input, .more input, .picker input, .picker textarea {
 }
 .toolbar button:hover { border-color: var(--rule); }
 .toolbar button[aria-pressed="true"] { background: var(--placeholder-bg); border-color: var(--rule); }
+.toolbar .heading-level {
+  font-family: var(--font-label); font-size: 0.875rem; color: var(--fg);
+  background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 0.15rem 0.35rem; cursor: pointer;
+}
+.lia-bar { margin: 0.5rem 0 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid var(--rule); border-radius: 6px; font-family: var(--font-label); font-size: 0.9375rem; }
+.lia-bar p { margin: 0; }
+.lia-scope { color: var(--muted); margin-bottom: 0.4rem !important; }
+.lia-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; }
+.lia-row label { font-weight: 500; }
+.lia-row input { flex: 1 1 16rem; font: inherit; padding: 0.3rem 0.5rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.lia-row button, .lia-status button {
+  font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 0.25rem 0.65rem; cursor: pointer;
+}
+.lia-row #lia-send { color: var(--accent); }
+.lia-status { margin-top: 0.4rem !important; }
+.lia-status:empty { display: none; }
+.lia-status button { margin-left: 0.5rem; padding: 0.1rem 0.5rem; }
+.lia-status.error { color: var(--error-fg); }
 .toolbar .annotate-button { margin-left: auto; color: var(--accent); border-color: var(--rule); }
 
 #content .prose { min-height: 50vh; outline: none; }
@@ -250,7 +268,7 @@ select, .details input, .more input, .picker input, .picker textarea {
 .toolbar-menu button { text-align: left; }
 .table-tools { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; font-family: var(--font-label); font-size: 0.875rem; }
 .table-tools[hidden] { display: none; }
-.source-mode .toolbar > :not(.source-toggle) { display: none; }
+.source-mode .toolbar > :not(.source-toggle):not(.lia-toggle) { display: none; }
 .source-mode .toolbar { justify-content: flex-end; }
 .toolbar .source-toggle { border-color: var(--rule); }
 .source-text, .picker-form textarea.code {

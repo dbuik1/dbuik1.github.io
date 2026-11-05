@@ -52,7 +52,7 @@ const editor = new Editor({
   element: $("content"),
   extensions: [
     StarterKit.configure({
-      heading: { levels: [2, 3] },
+      heading: { levels: [1, 2, 3, 4, 5, 6] },
       underline: false,
       code: false,
       codeBlock: false,
@@ -649,8 +649,6 @@ function toggleSource() {
 const commands = {
   bold: (c) => c.toggleBold(),
   italic: (c) => c.toggleItalic(),
-  h2: (c) => c.toggleHeading({ level: 2 }),
-  h3: (c) => c.toggleHeading({ level: 3 }),
   quote: (c) => c.toggleBlockquote(),
   bullets: (c) => c.toggleBulletList(),
   numbers: (c) => c.toggleOrderedList(),
@@ -723,6 +721,7 @@ document.querySelector(".toolbar").addEventListener("click", (e) => {
   if (!cmd) return;
   e.target.closest("details")?.removeAttribute("open");
   if (cmd === "source") return toggleSource();
+  if (cmd === "lia") return toggleLia();
   if (cmd === "html") return htmlBlock();
   if (cmd === "link") return setLink();
   if (cmd === "annotate") return annotate();
@@ -735,14 +734,17 @@ document.querySelector(".toolbar").addEventListener("click", (e) => {
   if (cmd === "xref") return crossLink();
   commands[cmd](editor.chain().focus()).run();
 });
+$("heading-level").addEventListener("change", (e) => {
+  const level = Number(e.target.value);
+  const chain = editor.chain().focus();
+  (level ? chain.setHeading({ level }) : chain.setParagraph()).run();
+});
 editor.on("selectionUpdate", updateToolbar);
 editor.on("transaction", updateToolbar);
 function updateToolbar() {
   const active = {
     bold: editor.isActive("bold"),
     italic: editor.isActive("italic"),
-    h2: editor.isActive("heading", { level: 2 }),
-    h3: editor.isActive("heading", { level: 3 }),
     quote: editor.isActive("blockquote"),
     bullets: editor.isActive("bulletList"),
     numbers: editor.isActive("orderedList"),
@@ -751,6 +753,8 @@ function updateToolbar() {
     sub: editor.isActive("subscript"),
   };
   $("table-tools").hidden = sourceMode || !editor.isActive("table");
+  const level = [1, 2, 3, 4, 5, 6].find((l) => editor.isActive("heading", { level: l })) ?? 0;
+  if (document.activeElement !== $("heading-level")) $("heading-level").value = String(level);
   for (const b of document.querySelectorAll(".toolbar button[data-cmd]")) {
     if (b.dataset.cmd in active) b.setAttribute("aria-pressed", String(active[b.dataset.cmd]));
   }
@@ -760,9 +764,149 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     setLink();
   }
+  if ((e.ctrlKey || e.metaKey) && e.key === "j" && !$("write").hidden && meta.lia) {
+    e.preventDefault();
+    toggleLia(true);
+  }
   if ((e.ctrlKey || e.metaKey) && e.key === "s" && !$("write").hidden) {
     e.preventDefault();
     saveDraft();
+  }
+});
+
+// ---- Ask Lia ----
+// Lia changes the selected text, or the whole text when nothing is selected,
+// as one step: Ctrl+Z or Undo takes it back. Lia's answer replaces only the
+// part it was given; the words around it go along as context.
+const lia = { busy: false, undo: null };
+$("lia-toggle").hidden = !meta.lia;
+
+// The part Lia works on: a selection inside one paragraph stays as it is; one
+// across paragraphs grows to whole paragraphs, so Lia's paragraphs fit.
+function liaTarget() {
+  if (sourceMode) {
+    const a = sourceBox.selectionStart, b = sourceBox.selectionEnd;
+    const whole = a === b;
+    return { source: true, whole, from: whole ? 0 : a, to: whole ? sourceBox.value.length : b };
+  }
+  const { from, to, $from, $to, empty } = editor.state.selection;
+  if (empty) return { whole: true, from: 0, to: editor.state.doc.content.size };
+  if ($from.sameParent($to) && $from.parent.isTextblock) return { inline: true, from, to };
+  return { from: $from.depth ? $from.before(1) : from, to: $to.depth ? $to.after(1) : to };
+}
+
+function liaScope() {
+  const t = liaTarget();
+  $("lia-scope").textContent = t.whole
+    ? "Nothing is selected, so Lia works on the whole text. Ctrl+Z undoes the change."
+    : "Lia works on the selected text. Ctrl+Z undoes the change.";
+}
+
+function toggleLia(open = $("lia-form").hidden) {
+  $("lia-form").hidden = !open;
+  $("lia-toggle").setAttribute("aria-expanded", String(open));
+  $("lia-toggle").setAttribute("aria-pressed", String(open));
+  if (open) {
+    liaScope();
+    $("lia-request").focus();
+  } else if (sourceMode) sourceBox.focus();
+  else editor.commands.focus();
+}
+$("lia-close").addEventListener("click", () => toggleLia(false));
+$("lia-form").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") toggleLia(false);
+});
+editor.on("selectionUpdate", () => !$("lia-form").hidden && !lia.busy && liaScope());
+sourceBox.addEventListener("select", () => !$("lia-form").hidden && !lia.busy && liaScope());
+
+function liaStatus(text, { error = false, undo = false } = {}) {
+  const box = $("lia-status");
+  box.className = error ? "lia-status error" : "lia-status";
+  box.replaceChildren(document.createTextNode(text));
+  if (undo) {
+    const b = Object.assign(document.createElement("button"), { type: "button", textContent: "Undo" });
+    b.addEventListener("click", undoLia);
+    box.append(b);
+  }
+}
+
+function serialize(from, to) {
+  return editor.markdown.serialize({ type: "doc", content: editor.state.doc.slice(from, to).content.toJSON() ?? [] });
+}
+
+function applyLia(t, text) {
+  if (t.source) {
+    const before = sourceBox.value;
+    sourceBox.focus();
+    sourceBox.setSelectionRange(t.from, t.to);
+    if (!document.execCommand("insertText", false, text)) sourceBox.setRangeText(text, t.from, t.to, "end");
+    fitSource();
+    changed();
+    lia.undo = { source: true, before, after: sourceBox.value };
+    return;
+  }
+  let content = editor.markdown.parse(text).content ?? [];
+  if (t.inline && content.length === 1 && content[0].type === "paragraph") content = content[0].content ?? [];
+  const chain = editor.chain().focus();
+  if (t.whole) chain.setContent({ type: "doc", content }, { emitUpdate: true });
+  else if (content.length) chain.insertContentAt({ from: t.from, to: t.to }, content);
+  else chain.deleteRange({ from: t.from, to: t.to });
+  chain.run();
+  lia.undo = { doc: editor.state.doc };
+}
+
+function undoLia() {
+  const u = lia.undo;
+  lia.undo = null;
+  if (u?.source && sourceBox.value === u.after) {
+    sourceBox.value = u.before;
+    fitSource();
+    changed();
+  } else if (u?.doc && editor.state.doc === u.doc) {
+    editor.commands.undo();
+  } else {
+    liaStatus("You've changed the text since, so press Ctrl+Z to step back to before Lia's change.");
+    return;
+  }
+  liaStatus("Undone. The text is back as it was.");
+}
+
+$("lia-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const request = $("lia-request").value.trim();
+  if (lia.busy) return;
+  if (!request) return liaStatus("Say what Lia should do, for example: make this one line.", { error: true });
+  const t = liaTarget();
+  let text, before, after;
+  if (t.source) {
+    text = sourceBox.value.slice(t.from, t.to);
+    before = sourceBox.value.slice(Math.max(0, t.from - 6000), t.from);
+    after = sourceBox.value.slice(t.to, t.to + 6000);
+  } else {
+    text = serialize(t.from, t.to);
+    before = t.whole ? "" : editor.state.doc.textBetween(0, t.from, "\n\n").slice(-6000);
+    after = t.whole ? "" : editor.state.doc.textBetween(t.to, editor.state.doc.content.size, "\n\n").slice(0, 6000);
+  }
+  const startDoc = t.source ? sourceBox.value : editor.state.doc;
+  const title = fields.title.value.trim() || "untitled";
+  lia.busy = true;
+  $("lia-send").disabled = true;
+  liaStatus("Lia is working on it…");
+  try {
+    const got = await api("POST", "/api/lia", { request, text, before, after, where: `${kindOf(doc) ?? "post"} “${title}”` });
+    if ((t.source ? sourceBox.value : editor.state.doc) !== startDoc) {
+      liaStatus("The text changed while Lia was working, so Lia's version wasn't put in. Ask again.", { error: true });
+      return;
+    }
+    applyLia(t, got.text);
+    if (got.libraryChanged) await loadLibrary().catch(() => {});
+    liaStatus(`${t.whole ? "Lia changed the whole text." : "Lia changed the selected text."} ${got.note ?? ""}`.trim(), { undo: true });
+    $("lia-request").select();
+  } catch (err) {
+    liaStatus(err.message, { error: true });
+  } finally {
+    lia.busy = false;
+    $("lia-send").disabled = false;
   }
 });
 

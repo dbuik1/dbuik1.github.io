@@ -154,6 +154,13 @@ main { display: grid; gap: 3rem; }
 .post-header { display: grid; gap: 0.5rem; }
 .post-body > :first-child { margin-top: 0; }
 .post-body h2 { margin-top: 2rem; }
+/* Headings inside a post step down from the page title (2.25rem), so a post's own Heading 1 never outranks it. */
+.post-body :is(h1, h3, h4, h5, h6) { font-family: var(--font-display); line-height: 1.2; text-wrap: balance; margin: 2rem 0 0; }
+.post-body h1 { font-size: 1.5rem; font-weight: 500; }
+.post-body h3 { font-size: 1.0625rem; font-weight: 700; }
+.post-body h4 { font-size: 1rem; font-weight: 700; }
+.post-body h5 { font-size: 1rem; font-weight: 600; font-style: italic; }
+.post-body h6 { font-size: 0.9375rem; font-weight: 600; color: var(--muted); }
 .post-body blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--muted); }
 .post-body pre { overflow-x: auto; padding: 1rem; background: var(--placeholder-bg); border-radius: 4px; }
 .post-tags { margin: 0; font-family: var(--font-label); color: var(--muted); }

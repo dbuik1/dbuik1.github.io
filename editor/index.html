@@ -229,8 +229,15 @@
       <div class="toolbar" role="toolbar" aria-label="Formatting" data-kinds="post project text note visual commentary">
         <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
         <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-        <button type="button" data-cmd="h2" title="Heading">Heading</button>
-        <button type="button" data-cmd="h3" title="Subheading">Subheading</button>
+        <select id="heading-level" class="heading-level" aria-label="Text style" title="Paragraph or heading level">
+          <option value="0">Text</option>
+          <option value="1">Heading 1</option>
+          <option value="2">Heading 2</option>
+          <option value="3">Heading 3</option>
+          <option value="4">Heading 4</option>
+          <option value="5">Heading 5</option>
+          <option value="6">Heading 6</option>
+        </select>
         <button type="button" data-cmd="quote" title="Quote">Quote</button>
         <button type="button" data-cmd="bullets" title="Bulleted list">• List</button>
         <button type="button" data-cmd="numbers" title="Numbered list">1. List</button>
@@ -253,6 +260,7 @@
         <button type="button" data-cmd="footnote" class="insert-button" title="Add a footnote at the cursor" data-kinds="post project note commentary">Footnote</button>
         <button type="button" data-cmd="cite" class="insert-button" title="Cite a source from your library" data-kinds="post project note commentary">Cite</button>
         <button type="button" data-cmd="annotate" class="insert-button" title="Annotate a confession or Bible passage" data-kinds="post">Annotate</button>
+        <button type="button" data-cmd="lia" class="insert-button lia-toggle" id="lia-toggle" title="Ask Lia to change the selected text, or the whole text (Ctrl+J)" aria-expanded="false" aria-controls="lia-form" hidden>Ask Lia</button>
         <button type="button" data-cmd="source" class="source-toggle" aria-pressed="false" title="Edit the post as plain Markdown and HTML">Source</button>
         <div class="table-tools" id="table-tools" role="group" aria-label="Table" hidden>
           <span class="muted">Table:</span>
@@ -263,6 +271,17 @@
           <button type="button" data-cmd="tableDelete">Delete table</button>
         </div>
       </div>
+
+      <form class="lia-bar" id="lia-form" data-kinds="post project text note visual commentary" hidden>
+        <p class="lia-scope" id="lia-scope"></p>
+        <div class="lia-row">
+          <label for="lia-request">What should Lia do?</label>
+          <input id="lia-request" maxlength="2000" autocomplete="off">
+          <button type="submit" id="lia-send">Ask Lia</button>
+          <button type="button" id="lia-close">Close</button>
+        </div>
+        <p class="lia-status" id="lia-status" role="status" aria-live="polite"></p>
+      </form>
 
       <div id="content" class="post-body" data-kinds="post project text note visual commentary"></div>
       <textarea id="source" class="source-text" aria-label="Source: Markdown and HTML" spellcheck="true" hidden></textarea>

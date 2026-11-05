@@ -7,7 +7,7 @@
 import { createServer as createHttpServer } from "node:http";
 import { readFile, writeFile, readdir, mkdir, unlink } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -885,6 +885,101 @@ async function publishLibrary() {
   return { ...(await commitAndPush([references.LIBRARY], "Update the reference library")), actions: `${site.repo}/actions` };
 }
 
+// ---- Ask Lia ----
+// Lia is the owner's assistant on their Spark. `hubctl edit` takes the
+// request on stdin and answers the new text; the editor puts it in place of
+// the selection, where Ctrl+Z takes it back. Where hubctl isn't installed,
+// as on a laptop without the hub, Ask Lia is hidden.
+
+const LIA_TIMEOUT = 5 * 60 * 1000;
+
+function findHubctl() {
+  const named = process.env.LIA_HUBCTL;
+  if (named) return existsSync(named) ? named : null;
+  const exe = process.platform === "win32" ? "hubctl.exe" : "hubctl";
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (dir && existsSync(path.join(dir, exe))) return path.join(dir, exe);
+  }
+  return null;
+}
+
+// How the editor reads Markdown, with the sources and pages Lia may cite and
+// link to. Lists are capped so the request stays small.
+function liaFormat() {
+  const lib = references.list().slice(0, 400).map((r) => `@${r.key}: ${[r.author, r.year, r.title].filter(Boolean).join(", ")}`);
+  const pages = [...xref.targets().values()].slice(0, 400).map((t) => `${t.slug}: ${t.title}`);
+  return [
+    "Markdown for an Eleventy site, edited in a rich-text editor. Headings run from # (Heading 1) to ###### (Heading 6); the title is separate and is not in the text.",
+    "Footnotes: ^[text]. Citations become Chicago-style footnotes: [@key] or [@key, p. 23], using a key from the reference library below.",
+    "To cite a source that isn't in the library, write [@doi:DOI] or [@isbn:ISBN] with the real DOI or ISBN; the editor looks it up and adds it to the library. Never make one up.",
+    "Cross-links to the owner's own pages: [[slug]] or [[slug|link text]], using a slug below.",
+    "Keep HTML blocks, images, annotations and other markup exactly as they are unless asked to change them.",
+    lib.length ? `Reference library:\n${lib.join("\n")}` : "The reference library is empty.",
+    pages.length ? `The owner's pages:\n${pages.join("\n")}` : "",
+  ].filter(Boolean).join("\n\n");
+}
+
+function runHubctl(hubctl, input) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(hubctl, ["edit", "--json"], { stdio: ["pipe", "pipe", "pipe"] });
+    let out = "";
+    let err = "";
+    const timer = setTimeout(() => child.kill(), LIA_TIMEOUT);
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (err += d));
+    child.on("error", (e) => (clearTimeout(timer), reject(new UserError(`Lia couldn't be reached: ${e.message}`))));
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        const last = err.trim().split("\n").pop()?.replace(/^hubctl:\s*/, "");
+        return reject(new UserError(last || "Lia took too long and stopped. Try again, or ask for less at once."));
+      }
+      try {
+        resolve(JSON.parse(out));
+      } catch {
+        reject(new UserError("Lia's answer couldn't be read."));
+      }
+    });
+    child.stdin.end(input);
+  });
+}
+
+// Citations Lia wrote as [@doi:…] or [@isbn:…] become library keys; a source
+// that can't be found keeps its placeholder and is named in the note.
+async function addLiaSources(text) {
+  const found = [...text.matchAll(/\[@(doi|isbn):([^\s,;\]]+)/gi)];
+  const missing = [];
+  let added = 0;
+  const squash = (x) => x.replace(/[-\s]/g, "").toLowerCase();
+  for (const id of new Set(found.map((m) => `${m[1].toLowerCase()}:${m[2]}`))) {
+    const value = id.slice(id.indexOf(":") + 1);
+    try {
+      // A source already in the library keeps its key instead of gaining a copy.
+      const known = references.list().find((r) => squash(r.raw).includes(squash(value)))?.key;
+      const key = known ?? (await addReferences({ input: value })).added?.[0];
+      if (!key) throw new Error("no entry");
+      if (!known) added++;
+      text = text.replace(new RegExp(`\\[@${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "gi"), `[@${key}`);
+    } catch {
+      missing.push(value);
+    }
+  }
+  return { text, added, missing };
+}
+
+async function askLia({ request, text = "", before = "", after = "", where = "" }) {
+  const hubctl = findHubctl();
+  if (!hubctl) throw new UserError("Lia isn't on this computer. Open the editor from your Spark to ask Lia.");
+  if (!String(request ?? "").trim()) throw new UserError("Say what Lia should do.");
+  const input = JSON.stringify({ request, text, before, after, where: `Website editor: ${where}`, format: liaFormat() });
+  const got = await runHubctl(hubctl, input);
+  const sourced = await addLiaSources(String(got.text ?? ""));
+  let note = String(got.note ?? "");
+  if (sourced.added) note += ` Added ${sourced.added === 1 ? "a source" : `${sourced.added} sources`} to your reference library.`;
+  if (sourced.missing.length) note += ` Couldn't find ${sourced.missing.join(", ")}, so that citation needs checking.`;
+  return { text: sourced.text, note: note.trim(), libraryChanged: sourced.added > 0 };
+}
+
 // ---- Site data for the form ----
 
 async function meta() {
@@ -922,6 +1017,7 @@ async function meta() {
     noteKinds: uniq(notes.map((f) => f.kind)),
     series: uniq(posts.map((p) => p.series)),
     outline: annotations.outline(),
+    lia: Boolean(findHubctl()),
   };
 }
 
@@ -981,6 +1077,7 @@ const routes = {
   },
   "POST /api/search": async (b) => annotations.search(b.source, b.query),
   "POST /api/publish": (b) => publish(b),
+  "POST /api/lia": (b) => askLia(b),
   "POST /api/image": (b) => saveImage(b),
   "GET /api/references": () => libraryState(),
   "POST /api/references/add": (b) => addReferences(b),

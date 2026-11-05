@@ -13,6 +13,7 @@ import MarkdownIt from "markdown-it";
 import { HtmlBlock, HtmlInline, Sup, Sub, initHtml, newHtmlBlock } from "./html.js";
 import { VisualEmbed, initVisualPicker, openVisualPicker, setVisuals } from "./visual.js";
 import { Excerpt, Moment, balance } from "./clips.js";
+import { renderDiff } from "./textdiff.js";
 import { initCommentary, setSource, getSource, saveCopy, openExcerpt, openMoment, LONG_QUOTE } from "./commentary.js";
 
 const $ = (id) => document.getElementById(id);
@@ -778,10 +779,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---- Ask Lia ----
-// Lia changes the selected text, or the whole text when nothing is selected,
-// as one step: Ctrl+Z or Undo takes it back. Lia's answer replaces only the
-// part it was given; the words around it go along as context.
-const lia = { busy: false, undo: null };
+// Lia changes the selected text, or the whole text when nothing is selected.
+// Its version is shown as a diff first and goes in only on Apply, as one
+// step that Ctrl+Z or Undo takes back. Lia's answer replaces only the part it
+// was given; the words around it go along as context.
+const lia = { busy: false, undo: null, pending: null };
 $("lia-toggle").hidden = !meta.lia;
 
 // The part Lia works on: a selection inside one paragraph stays as it is; one
@@ -801,14 +803,15 @@ function liaTarget() {
 function liaScope() {
   const t = liaTarget();
   $("lia-scope").textContent = t.whole
-    ? "Nothing is selected, so Lia works on the whole text. Ctrl+Z undoes the change."
-    : "Lia works on the selected text. Ctrl+Z undoes the change.";
+    ? "Nothing is selected, so Lia works on the whole text. You see the changes before they go in."
+    : "Lia works on the selected text. You see the changes before they go in.";
 }
 
 function toggleLia(open = $("lia-form").hidden) {
   $("lia-form").hidden = !open;
   $("lia-toggle").setAttribute("aria-expanded", String(open));
   $("lia-toggle").setAttribute("aria-pressed", String(open));
+  if (!open && lia.pending) closeReview();
   if (open) {
     liaScope();
     $("lia-request").focus();
@@ -817,10 +820,13 @@ function toggleLia(open = $("lia-form").hidden) {
 }
 $("lia-close").addEventListener("click", () => toggleLia(false));
 $("lia-form").addEventListener("keydown", (e) => {
-  if (e.key === "Escape") toggleLia(false);
+  if (e.key === "Escape") {
+    if (lia.pending) discardLia();
+    else toggleLia(false);
+  }
 });
-editor.on("selectionUpdate", () => !$("lia-form").hidden && !lia.busy && liaScope());
-sourceBox.addEventListener("select", () => !$("lia-form").hidden && !lia.busy && liaScope());
+editor.on("selectionUpdate", () => !$("lia-form").hidden && !lia.busy && !lia.pending && liaScope());
+sourceBox.addEventListener("select", () => !$("lia-form").hidden && !lia.busy && !lia.pending && liaScope());
 
 function liaStatus(text, { error = false, undo = false } = {}) {
   const box = $("lia-status");
@@ -858,6 +864,48 @@ function applyLia(t, text) {
   lia.undo = { doc: editor.state.doc };
 }
 
+function liaDoc(t) {
+  return t.source ? sourceBox.value : editor.state.doc;
+}
+
+function showReview(p) {
+  lia.pending = p;
+  const box = $("lia-review");
+  box.hidden = false;
+  $("lia-review-sum").textContent = renderDiff($("lia-diff"), p.text, p.answer);
+  $("lia-review-note").textContent = p.note ?? "";
+  $("lia-scope").textContent = p.t.whole ? "Lia's changes to the whole text" : "Lia's changes to the selected text";
+  liaStatus("");
+  $("lia-apply").focus();
+}
+
+function closeReview() {
+  lia.pending = null;
+  $("lia-review").hidden = true;
+  $("lia-diff").replaceChildren();
+  liaScope();
+}
+
+function discardLia() {
+  closeReview();
+  liaStatus("Discarded. Your text is as it was.");
+  $("lia-request").focus();
+}
+
+$("lia-discard").addEventListener("click", discardLia);
+$("lia-apply").addEventListener("click", () => {
+  const p = lia.pending;
+  if (!p) return;
+  if (liaDoc(p.t) !== p.startDoc) {
+    closeReview();
+    return liaStatus("The text changed since Lia answered, so its version wasn't put in. Ask again.", { error: true });
+  }
+  closeReview();
+  applyLia(p.t, p.answer);
+  liaStatus(`${p.t.whole ? "Applied to the whole text." : "Applied to the selected text."} Ctrl+Z undoes it.`, { undo: true });
+  $("lia-request").select();
+});
+
 function undoLia() {
   const u = lia.undo;
   lia.undo = null;
@@ -878,6 +926,7 @@ $("lia-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const request = $("lia-request").value.trim();
   if (lia.busy) return;
+  if (lia.pending) closeReview();
   if (!request) return liaStatus("Say what Lia should do, for example: make this one line.", { error: true });
   const t = liaTarget();
   let text, before, after;
@@ -890,21 +939,19 @@ $("lia-form").addEventListener("submit", async (e) => {
     before = t.whole ? "" : editor.state.doc.textBetween(0, t.from, "\n\n").slice(-6000);
     after = t.whole ? "" : editor.state.doc.textBetween(t.to, editor.state.doc.content.size, "\n\n").slice(0, 6000);
   }
-  const startDoc = t.source ? sourceBox.value : editor.state.doc;
+  const startDoc = liaDoc(t);
   const title = fields.title.value.trim() || "untitled";
   lia.busy = true;
   $("lia-send").disabled = true;
   liaStatus("Lia is working on it…");
   try {
     const got = await api("POST", "/api/lia", { request, text, before, after, where: `${kindOf(doc) ?? "post"} “${title}”` });
-    if ((t.source ? sourceBox.value : editor.state.doc) !== startDoc) {
+    if (got.libraryChanged) await loadLibrary().catch(() => {});
+    if (liaDoc(t) !== startDoc) {
       liaStatus("The text changed while Lia was working, so Lia's version wasn't put in. Ask again.", { error: true });
       return;
     }
-    applyLia(t, got.text);
-    if (got.libraryChanged) await loadLibrary().catch(() => {});
-    liaStatus(`${t.whole ? "Lia changed the whole text." : "Lia changed the selected text."} ${got.note ?? ""}`.trim(), { undo: true });
-    $("lia-request").select();
+    showReview({ t, text, answer: got.text, note: got.note, startDoc });
   } catch (err) {
     // An editor started before Ask Lia existed answers Not found until it restarts.
     const old = /^Not found$/i.test(err.message);

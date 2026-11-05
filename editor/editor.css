@@ -96,8 +96,10 @@ select, .details input, .more input, .picker input, .picker textarea {
 .toolbar button[aria-pressed="true"] { background: var(--placeholder-bg); border-color: var(--rule); }
 .toolbar .heading-level {
   font-family: var(--font-label); font-size: 0.875rem; color: var(--fg);
-  background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 0.15rem 0.35rem; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 0.15rem 0.35rem; cursor: pointer;
 }
+/* The open list is drawn by the browser; without its own colours it shows light text on a white list in dark mode. */
+.toolbar .heading-level option { background: var(--bg); color: var(--fg); }
 .lia-bar { margin: 0.5rem 0 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid var(--rule); border-radius: 6px; font-family: var(--font-label); font-size: 0.9375rem; }
 .lia-bar p { margin: 0; }
 .lia-scope { color: var(--muted); margin-bottom: 0.4rem !important; }

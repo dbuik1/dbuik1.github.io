@@ -166,7 +166,7 @@
         </details>
       </section>
 
-      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off" data-kinds="post project note visual commentary">
+      <input id="title" class="title-input" placeholder="Title" aria-label="Title" autocomplete="off" spellcheck="true" data-kinds="post project note visual commentary">
       <div data-kinds="text inline">
         <h1 class="text-label" id="text-label"></h1>
         <p class="lede" id="text-where"></p>
@@ -191,7 +191,7 @@
       </div>
       <div class="details" data-kinds="project">
         <label>Status <select id="status"></select></label>
-        <label class="grow">Summary <input id="summary" placeholder="One line shown in lists" autocomplete="off"></label>
+        <label class="grow">Summary <input id="summary" placeholder="One line shown in lists" autocomplete="off" spellcheck="true"></label>
       </div>
 
       <div class="visual-panel" data-kinds="visual">
@@ -209,7 +209,7 @@
       <details class="more" data-kinds="post project visual commentary">
         <summary>More details</summary>
         <div class="more-grid">
-          <label class="wide" data-kinds="post">Description <input id="description" placeholder="One line for search results and link previews. Left blank, the first paragraph is used"></label>
+          <label class="wide" data-kinds="post">Description <input id="description" spellcheck="true" placeholder="One line for search results and link previews. Left blank, the first paragraph is used"></label>
           <label>Address <span class="slug-field"><span class="muted" id="slug-prefix">/blog/</span><input id="slug" autocomplete="off"><span class="muted">/</span></span></label>
           <label data-kinds="post">Project <select id="project"><option value="">None</option></select></label>
           <label data-kinds="post">Series <input id="series" list="series-options" autocomplete="off"><datalist id="series-options"></datalist></label>
@@ -224,7 +224,7 @@
 
       <p class="lede visual-intro-label" data-kinds="visual">Your introduction, shown above the visual on its page. Optional.</p>
 
-      <input id="inline-text" class="inline-text" aria-labelledby="text-label" autocomplete="off" data-kinds="inline">
+      <input id="inline-text" class="inline-text" aria-labelledby="text-label" autocomplete="off" spellcheck="true" data-kinds="inline">
 
       <div class="toolbar" role="toolbar" aria-label="Formatting" data-kinds="post project text note visual commentary">
         <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
@@ -276,7 +276,7 @@
         <p class="lia-scope" id="lia-scope"></p>
         <div class="lia-row">
           <label for="lia-request">What should Lia do?</label>
-          <input id="lia-request" maxlength="2000" autocomplete="off">
+          <input id="lia-request" maxlength="2000" autocomplete="off" spellcheck="true">
           <button type="submit" id="lia-send">Ask Lia</button>
           <button type="button" id="lia-close">Close</button>
         </div>
@@ -284,7 +284,7 @@
       </form>
 
       <div id="content" class="post-body" data-kinds="post project text note visual commentary"></div>
-      <textarea id="source" class="source-text" aria-label="Source: Markdown and HTML" spellcheck="true" hidden></textarea>
+      <textarea id="source" class="source-text" aria-label="Source: Markdown and HTML" spellcheck="true" autocorrect="on" autocapitalize="sentences" hidden></textarea>
     </main>
   </div>
 

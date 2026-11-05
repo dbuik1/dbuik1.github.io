@@ -672,7 +672,7 @@ async function commitAndPush(paths, message) {
 // version of the site from GitHub before listing or opening anything; otherwise
 // it would show text that has since been changed elsewhere. At most every 20
 // seconds, and never fatal: offline, it carries on with what's here.
-const sync = { at: 0, error: null, editorChanged: false, running: null };
+const sync = { at: 0, error: null, editorChanged: false, restarting: false, running: null };
 const EDITOR_CODE = /^(editor\/|lib\/|src\/_data\/|package(-lock)?\.json$)/;
 
 async function syncSite() {
@@ -690,7 +690,10 @@ async function syncSite() {
       if (Number(await git("rev-list", "--count", "HEAD..@{u}"))) {
         await git("pull", "--rebase", "--autostash", "--quiet");
         const changed = (await git("diff", "--name-only", before, "HEAD")).split("\n");
-        if (changed.some((f) => EDITOR_CODE.test(f))) sync.editorChanged = true;
+        if (changed.some((f) => EDITOR_CODE.test(f))) {
+          sync.editorChanged = true;
+          if (SUPERVISED) restartForUpdate(changed);
+        }
       }
       sync.error = null;
     } catch (e) {
@@ -703,7 +706,24 @@ async function syncSite() {
   })();
   return sync.running;
 }
-const syncState = () => ({ error: sync.error, editorChanged: sync.editorChanged });
+const syncState = () => ({ error: sync.error, editorChanged: sync.editorChanged, restarting: sync.restarting });
+
+// Run as a service (systemd sets INVOCATION_ID), nobody is at a terminal to
+// restart the editor, so it restarts itself after an update to its own code:
+// it installs changed packages first, answers the request in hand, then exits
+// and the service starts the new version.
+const SUPERVISED = Boolean(process.env.INVOCATION_ID || process.env.EDITOR_SUPERVISED);
+function restartForUpdate(changed) {
+  if (sync.restarting) return;
+  sync.restarting = true;
+  (async () => {
+    if (changed.some((f) => /^package(-lock)?\.json$/.test(f))) {
+      await run("npm", ["ci", "--no-audit", "--no-fund"], { cwd: ROOT }).catch((e) => console.error("npm ci failed:", e.message));
+    }
+    console.log("The editor's own code changed; restarting to use it.");
+    setTimeout(() => process.exit(0), 1500);
+  })();
+}
 
 // The editor's own code as committed when it started. Node keeps running that
 // version after a pull brings in a newer one, and the old code can write files

@@ -77,7 +77,7 @@ const editor = new Editor({
     TableKit.configure({ table: { resizable: false } }),
   ],
   editorProps: {
-    attributes: { class: "prose", "aria-label": "Text", spellcheck: "true" },
+    attributes: { class: "prose", "aria-label": "Text", spellcheck: "true", autocorrect: "on", autocapitalize: "sentences", lang: "en-GB" },
     // A pasted or dropped image opens the image dialog, so it gets a description.
     handlePaste: (_view, event) => takeImage(event.clipboardData?.files),
     handleDrop: (_view, event) => takeImage(event.dataTransfer?.files),
@@ -461,7 +461,10 @@ function showLive(d) {
 // Shown on every screen: the latest version couldn't be fetched, or the editor itself changed.
 function showSync(sync) {
   const messages = [];
-  if (sync?.editorChanged) messages.push("The editor itself was updated on GitHub. To use the new version, stop it with Ctrl+C in its window and run npm run write again.");
+  if (sync?.restarting) {
+    messages.push("The editor is updating itself to its new version. This page reloads in a few seconds.");
+    setTimeout(() => location.reload(), 8000);
+  } else if (sync?.editorChanged) messages.push("The editor itself was updated on GitHub. To use the new version, stop it with Ctrl+C in its window and run npm run write again.");
   if (sync?.error) messages.push(sync.error);
   $("sync-note").textContent = messages.join("\n\n");
   $("sync-note").hidden = !messages.length;
@@ -903,7 +906,9 @@ $("lia-form").addEventListener("submit", async (e) => {
     liaStatus(`${t.whole ? "Lia changed the whole text." : "Lia changed the selected text."} ${got.note ?? ""}`.trim(), { undo: true });
     $("lia-request").select();
   } catch (err) {
-    liaStatus(err.message, { error: true });
+    // An editor started before Ask Lia existed answers Not found until it restarts.
+    const old = /^Not found$/i.test(err.message);
+    liaStatus(old ? "This editor is still running its older version, so Lia can't be asked yet. Reload the page in a minute and try again." : `Lia couldn't change it: ${err.message}`, { error: true });
   } finally {
     lia.busy = false;
     $("lia-send").disabled = false;

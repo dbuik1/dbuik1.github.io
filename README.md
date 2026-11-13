@@ -71,7 +71,7 @@ Your post starts here.
 | `importance` | Yes | `low` (Low), `medium` (Medium) or `high` (High): how much the post matters to you. The post shows it beside the level |
 | `tags` | No | Any words, in square brackets, separated by commas. Nest them with a slash: `theology/church` also files the post under `theology` |
 | `history` | No | Written by the editor when a published post changes level: a list of `level` and `date` pairs. The post shows the date of the last one |
-| `description` | No | One line for search results and link previews. Left out, the post's first paragraph is used |
+| `description` | No | One line shown on the home page, in search results and in link previews. In the editor, Lia can draft it. Left out, the post's first paragraph is used |
 | `series` | No | The same name on several posts links them as a numbered series |
 | `project` | No | A project's file name without `.md`, e.g. `example-project`; the post then shows on that project's page |
 | `draft` | No | `true` keeps the post off the live site; remove the line to publish |

@@ -10,9 +10,17 @@ layout: layouts/base.njk
 {%- if collections.posts | length %}
 <section class="home-section">
   <h2>Recent writing</h2>
-  {%- set postList = collections.posts | head(5) %}
-  {% include "partials/post-list.njk" %}
-  {%- if collections.posts | length > postList | length %}
+  <ul class="post-cards">
+    {%- for p in collections.posts | head(6) %}
+    <li>
+      <a class="post-title" href="{{ p.url }}">{{ p.data.title }}</a>
+      {% include "partials/post-meta.njk" %}
+      {%- set line = p.data.description or (p.content | excerpt) %}
+      {%- if line %}<p class="post-line">{{ line }}</p>{% endif %}
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- if collections.posts | length > 6 %}
   <p class="more"><a href="/blog/">All writing</a></p>
   {%- endif %}
 </section>

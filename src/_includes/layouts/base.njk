@@ -15,7 +15,7 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <div class="site">
+  <div class="site{% if page.url == "/" %} site-wide{% endif %}">
     <header class="site-header">
       <a class="site-name" href="/">{{ site.title }}</a>
       {%- if site.nav | length > 1 %}

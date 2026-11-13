@@ -360,6 +360,7 @@ function fill(d) {
   fields.importance.value = m.importance ?? "";
   levelHint();
   fields.description.value = kind === "post" ? m.description ?? "" : "";
+  $("description-status").hidden = true;
   fields.project.value = m.project ?? "";
   fields.series.value = m.series ?? "";
   fields.slug.value = m.slug ?? slugify(m.title ?? "");
@@ -777,6 +778,52 @@ document.addEventListener("keydown", (e) => {
     saveDraft();
   }
 });
+
+// ---- Description drafted by Lia ----
+// Lia drafts the one line shown on the post's home page card and in link
+// previews. It only fills the field: nothing goes out until the post is published.
+{
+  const button = $("draft-description");
+  const status = $("description-status");
+  button.hidden = !meta.lia;
+  const say = (text, undo) => {
+    status.replaceChildren(text);
+    if (undo) {
+      const b = Object.assign(document.createElement("button"), { type: "button", className: "link-button", textContent: "Put back mine" });
+      b.addEventListener("click", () => {
+        fields.description.value = undo;
+        fields.description.dispatchEvent(new Event("input"));
+        say("Your line is back.");
+      });
+      status.append(" ", b);
+    }
+    status.hidden = !text;
+  };
+  button.addEventListener("click", async () => {
+    const text = body().trim();
+    if (!text) return say("Write the post first, then Lia can draft its line.");
+    const before = fields.description.value.trim();
+    button.disabled = true;
+    say("Lia is drafting…");
+    try {
+      const got = await api("POST", "/api/lia", {
+        request: "Draft one plain sentence of at most 25 words that tells a reader what this post is about. It is shown under the title on the home page and in link previews. Write it in the owner's voice. Answer with the sentence only: no quotation marks, no Markdown, no footnotes or citations.",
+        text,
+        where: `description of the post “${fields.title.value.trim() || "untitled"}”`,
+      });
+      const line = String(got.text ?? "").replace(/\s+/g, " ").trim().replace(/^["“'‘]+|["”'’]+$/g, "");
+      if (!line) return say("Lia didn't send a line. Try again.");
+      fields.description.value = line;
+      fields.description.dispatchEvent(new Event("input"));
+      fields.description.focus();
+      say("Lia's draft. Edit it as you like.", before || null);
+    } catch (err) {
+      say(`Lia couldn't draft it: ${err.message}`);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
 
 // ---- Ask Lia ----
 // Lia changes the selected text, or the whole text when nothing is selected.

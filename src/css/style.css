@@ -20,8 +20,25 @@
   color-scheme: light dark;
 }
 
+/* Dark tokens. They follow the device's setting unless the reader picks a theme
+   with the header button, which sets data-theme on <html>. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161416;
+  --fg: #ece9ea;
+  --muted: #a29da2;
+  --rule: #302c30;
+  --accent: #e8707f;
+  --placeholder-bg: #221f22;
+  --mark: #54451a;
+  --agree-bg: #1e3222; --agree-fg: #9fd1a8;
+  --disagree-bg: #3a1c21; --disagree-fg: #f0a1ab;
+  --qualified-bg: #372d16; --qualified-fg: #e3c27a;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #161416;
     --fg: #ece9ea;
     --muted: #a29da2;
@@ -74,10 +91,10 @@ img { max-width: 100%; height: auto; }
 .site-header {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem 1.5rem;
 }
+.site-header .site-name { margin-right: auto; }
 .site-name { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; color: var(--fg); text-decoration: none; }
 .site-header ul { display: flex; gap: 1.25rem; list-style: none; margin: 0; padding: 0; font-family: var(--font-label); font-size: 1rem; }
 .site-header nav a { color: var(--muted); text-decoration: none; }
@@ -479,3 +496,15 @@ figure.visual figcaption { display: flex; flex-wrap: wrap; align-items: baseline
 
 .colophon-section h2 a, .colophon-section h3 a { color: inherit; text-decoration: none; }
 .colophon-section h2 a:hover, .colophon-section h3 a:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+
+/* Theme button: a moon in the light theme, a sun in the dark one. */
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; margin: -0.5rem -0.6rem -0.5rem 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+.theme-toggle:hover { color: var(--fg); }
+.theme-toggle[hidden] { display: none; }
+.theme-toggle svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle[aria-pressed="true"] .icon-moon, .theme-toggle[aria-pressed="false"] .icon-sun { display: none; }
+/* On a phone the menu takes its own row, so the theme button stays beside the name. */
+@media (max-width: 34rem) {
+  .site-header nav { order: 3; flex-basis: 100%; }
+  .site-header ul { flex-wrap: wrap; row-gap: 0.25rem; }
+}

@@ -186,7 +186,9 @@
           <ul class="tag-chips" id="tag-chips" aria-labelledby="tags-label"></ul>
           <input id="tag-input" list="tag-options" placeholder="Add a tag" aria-label="Add a tag" autocomplete="off">
           <datalist id="tag-options"></datalist>
+          <span data-kinds="post"><button type="button" class="link-button" id="suggest-tags" hidden>Suggest with Lia</button></span>
         </div>
+        <p class="wide muted" id="tag-suggestions" data-kinds="post" aria-live="polite" hidden></p>
         <p class="hint level-hint" id="level-hint" hidden></p>
       </div>
       <div class="details" data-kinds="project">

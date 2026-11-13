@@ -361,6 +361,7 @@ function fill(d) {
   levelHint();
   fields.description.value = kind === "post" ? m.description ?? "" : "";
   $("description-status").hidden = true;
+  $("tag-suggestions").hidden = true;
   fields.project.value = m.project ?? "";
   fields.series.value = m.series ?? "";
   fields.slug.value = m.slug ?? slugify(m.title ?? "");
@@ -825,6 +826,50 @@ document.addEventListener("keydown", (e) => {
   });
 }
 
+// ---- Tags suggested by Lia ----
+// Each suggestion is a button that adds that tag; nothing is added unasked.
+{
+  const button = $("suggest-tags");
+  const box = $("tag-suggestions");
+  button.hidden = !meta.lia;
+  const say = (...parts) => {
+    box.replaceChildren(...parts);
+    box.hidden = !parts.length;
+  };
+  const add = (tag) => {
+    if (!tags.includes(tag)) tags.push(tag);
+    renderTags();
+    changed();
+  };
+  button.addEventListener("click", async () => {
+    const text = body().trim();
+    if (!text) return say("Write the post first, then Lia can suggest tags.");
+    button.disabled = true;
+    say("Lia is reading the post…");
+    try {
+      const got = await api("POST", "/api/lia/tags", { text, title: fields.title.value.trim(), tags });
+      const offer = (list) => {
+        const left = list.filter((t) => !tags.includes(t));
+        if (!left.length) return say("Added.");
+        const chips = left.map((t) => {
+          const b = Object.assign(document.createElement("button"), { type: "button", className: "link-button", textContent: got.known.includes(t) ? t : `${t} (new)` });
+          b.setAttribute("aria-label", `Add tag ${t}`);
+          b.addEventListener("click", () => (add(t), offer(left)));
+          return b;
+        });
+        const all = Object.assign(document.createElement("button"), { type: "button", className: "link-button subtle", textContent: "Add all" });
+        all.addEventListener("click", () => (left.forEach(add), say("Added.")));
+        say("Lia suggests ", ...chips.flatMap((c, i) => (i ? [", ", c] : [c])), ". ", ...(left.length > 1 ? [all] : []));
+      };
+      offer(got.tags);
+    } catch (err) {
+      say(`Lia couldn't suggest tags: ${err.message}`);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
 // ---- Ask Lia ----
 // Lia changes the selected text, or the whole text when nothing is selected.
 // Its version is shown as a diff first and goes in only on Apply, as one
@@ -992,7 +1037,7 @@ $("lia-form").addEventListener("submit", async (e) => {
   $("lia-send").disabled = true;
   liaStatus("Lia is working on it…");
   try {
-    const got = await api("POST", "/api/lia", { request, text, before, after, where: `${kindOf(doc) ?? "post"} “${title}”` });
+    const got = await api("POST", "/api/lia", { request, text, before, after, kind: kindOf(doc) ?? "post", where: `${kindOf(doc) ?? "post"} “${title}”` });
     if (got.libraryChanged) await loadLibrary().catch(() => {});
     if (liaDoc(t) !== startDoc) {
       liaStatus("The text changed while Lia was working, so Lia's version wasn't put in. Ask again.", { error: true });

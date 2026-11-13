@@ -7,7 +7,8 @@
   const frames = new Set();
   const MAX_HEIGHT = 3000;
 
-  const theme = () => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const theme = () =>
+    document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const sendTheme = (frame) => frame.contentWindow?.postMessage({ type: "davidbuik:theme", theme: theme() }, "*");
 
   function watch(frame) {
@@ -35,6 +36,7 @@
   });
 
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => frames.forEach(sendTheme));
+  document.addEventListener("davidbuik:theme", () => frames.forEach(sendTheme));
 
   document.querySelectorAll("iframe.visual-frame").forEach(watch);
 

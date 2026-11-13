@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publish flow – layouts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+  :root { --fg:#222; --muted:#777; --rule:#ddd; --soft:#f4f4f4; --accent:#555; --bg:#fff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Alegreya Sans", system-ui, sans-serif; color:var(--fg); background:#fafafa; }
+  .wrap { max-width:1180px; margin:0 auto; padding:2rem 1rem 4rem; }
+  h1 { font-weight:500; margin:0 0 .25rem; }
+  .intro { color:var(--muted); margin:0 0 2rem; max-width:44rem; }
+  section.board { background:#fff; border:1px solid var(--rule); border-radius:10px; padding:1.25rem; margin-bottom:2rem; }
+  .cap { display:flex; gap:.75rem; align-items:baseline; flex-wrap:wrap; margin-bottom:1rem; }
+  .cap b { font-size:1.35rem; font-weight:500; }
+  .cap span { color:var(--muted); }
+  .flow { display:flex; gap:1rem; overflow-x:auto; padding-bottom:.5rem; align-items:flex-start; }
+  .step { flex:none; }
+  .step > p { margin:0 0 .35rem; font-size:.8rem; color:var(--muted); }
+  .frame { border:1px solid #bbb; border-radius:8px; background:var(--bg); position:relative; overflow:hidden; font-size:12px; }
+  .desk { width:330px; height:260px; }
+  .phone { width:150px; height:260px; border-radius:16px; font-size:10px; }
+  .bar { display:flex; align-items:center; gap:6px; padding:6px 8px; border-bottom:1px solid var(--rule); }
+  .bar .grow { flex:1; color:var(--muted); }
+  .btn { display:inline-block; border-radius:4px; padding:2px 8px; border:1px solid #999; white-space:nowrap; }
+  .pri { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .ghost { border-color:transparent; color:var(--accent); text-decoration:underline; padding:2px 0; }
+  .body { padding:8px 10px; }
+  .title { font-size:1.4em; font-weight:500; margin:2px 0 6px; }
+  .chips { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+  .chip { background:var(--soft); border-radius:3px; padding:1px 5px; color:#555; }
+  .line { height:6px; background:#e6e6e6; border-radius:3px; margin:5px 0; }
+  .line.s { width:70%; }
+  .panel { position:absolute; top:0; right:0; bottom:0; width:58%; background:#fff; border-left:1px solid #999; box-shadow:-4px 0 12px rgba(0,0,0,.08); padding:8px; display:flex; flex-direction:column; gap:4px; }
+  .phone .panel { width:100%; border-left:0; }
+  .dim { position:absolute; inset:0; background:rgba(0,0,0,.25); }
+  .dialog { position:absolute; left:12%; right:12%; top:16%; background:#fff; border:1px solid #999; border-radius:6px; padding:10px; display:flex; flex-direction:column; gap:4px; }
+  .phone .dialog { left:5%; right:5%; top:10%; }
+  .h { font-weight:700; font-size:1.1em; }
+  .kv { display:flex; justify-content:space-between; gap:6px; border-bottom:1px solid var(--soft); padding:1px 0; }
+  .kv i { font-style:normal; color:var(--muted); }
+  .phone .kv { flex-direction:column; gap:0; }
+  .row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .push { margin-top:auto; }
+  .ok { background:#e8f3ea; border-radius:4px; padding:6px; margin-bottom:6px; }
+  .warn { background:#fbf1dc; border-radius:4px; padding:6px; }
+  .del { background:#fbe3e3; text-decoration:line-through; }
+  .ins { background:#dff0e2; }
+  .hold { position:relative; overflow:hidden; }
+  .hold::before { content:""; position:absolute; inset:0; width:55%; background:rgba(255,255,255,.35); }
+  .sel { border:1px solid #999; border-radius:4px; padding:1px 5px; }
+  .list li { display:flex; justify-content:space-between; gap:6px; padding:3px 0; border-bottom:1px solid var(--soft); }
+  ul.list { list-style:none; padding:0; margin:4px 0; }
+  .note { color:var(--muted); font-size:.9em; }
+  .pick { margin-top:2.5rem; padding:1rem 1.25rem; border:1px dashed #bbb; border-radius:10px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Publish flow – six layouts</h1>
+  <p class="intro">Layout only, in neutral greys. Each board shows the flow for a new post at desktop and phone width: writing, the publish step, then what you see after. Your draft keeps saving on its own throughout.</p>
+  <div id="boards"></div>
+  <p class="pick">Pick on the card in the thread. Mixing parts works too, for example “A’s panel with C’s changes view”.</p>
+</div>
+<script>
+const T = "Christians are the best AI users";
+const bar = (right) => `<div class="bar"><span class="ghost btn">← Back</span><span class="grow">Saved 16:58</span>${right}</div>`;
+const page = (extra = "") => `<div class="body"><div class="title">${T}</div><div class="chips"><span class="chip">Explored</span><span class="chip">High importance</span><span class="chip">ai</span></div><div class="line"></div><div class="line"></div><div class="line s"></div><div class="line"></div><div class="line s"></div>${extra}</div>`;
+const summary = `
+  <div class="kv"><i>Address</i><span>/blog/christians-are…/</span></div>
+  <div class="kv"><i>Level</i><span>Explored · High importance</span></div>
+  <div class="kv"><i>Tags</i><span>ai, church</span></div>
+  <div class="kv"><i>Description</i><span>First paragraph</span></div>
+  <div class="kv"><i>New</i><span>1 image, 2 sources</span></div>`;
+const after = `<div class="body"><div class="ok"><b>Published.</b> Live in about a minute.<div class="row" style="margin-top:4px"><span class="ghost btn">Open the post</span><span class="ghost btn">Back to the start</span></div></div><div class="title">${T}</div><div class="line"></div><div class="line s"></div></div>`;
+
+const boards = [
+  { name: "A · Side panel", sum: "Publish… opens a panel on the right listing what goes out; Publish now sits at its foot, away from the first button.",
+    steps: [
+      ["Writing", bar(`<span class="btn">Save draft</span><span class="btn pri">Publish…</span>`) + page()],
+      ["Check and confirm", bar(`<span class="btn">Save draft</span><span class="btn pri">Publish…</span>`) + page() + `<div class="panel"><div class="h">Ready to publish?</div>${summary}<div class="row push"><span class="btn pri">Publish now</span><span class="ghost btn">Not yet</span></div></div>`],
+      ["After", bar(``) + after],
+    ] },
+  { name: "B · Centre dialog", sum: "Publish… opens a dialog with the summary. Focus starts on Cancel, so a stray Enter does nothing.",
+    steps: [
+      ["Writing", bar(`<span class="btn">Save draft</span><span class="btn pri">Publish…</span>`) + page()],
+      ["Check and confirm", bar(`<span class="btn">Save draft</span><span class="btn pri">Publish…</span>`) + page() + `<div class="dim"></div><div class="dialog"><div class="h">Publish “${T}”?</div>${summary}<div class="row" style="margin-top:6px"><span class="btn" style="outline:2px solid #333">Cancel</span><span class="btn pri">Publish now</span></div></div>`],
+      ["After", bar(``) + after],
+    ] },
+  { name: "C · Review page", sum: "Review takes you to a page showing the post as the site will, with the summary above it. For an update, it shows what changed. Publish at the foot.",
+    steps: [
+      ["Writing", bar(`<span class="btn">Save draft</span><span class="btn pri">Review</span>`) + page()],
+      ["Review (new post)", `<div class="bar"><span class="ghost btn">← Keep editing</span><span class="grow"></span></div><div class="body"><div class="h" style="margin-bottom:4px">Review before publishing</div>${summary}<div class="title" style="margin-top:6px">${T}</div><div class="line"></div><div class="line s"></div><div class="row" style="margin-top:6px"><span class="btn pri">Publish now</span></div></div>`],
+      ["Review (update)", `<div class="bar"><span class="ghost btn">← Keep editing</span><span class="grow"></span></div><div class="body"><div class="h" style="margin-bottom:4px">Changes to the live post</div><p style="margin:2px 0">The church <span class="del">should</span> <span class="ins">already does</span> use these tools.</p><p style="margin:2px 0" class="note">2 paragraphs changed · tag added: church</p><div class="row" style="margin-top:6px"><span class="btn pri">Update live post</span></div></div>`],
+      ["After", bar(``) + after],
+    ] },
+  { name: "D · Hold to publish", sum: "One button, as now, but it only fires if held for about a second. A click shows “Hold to publish”. No extra screen.",
+    steps: [
+      ["Writing", bar(`<span class="btn">Save draft</span><span class="btn pri">Publish</span>`) + page()],
+      ["Clicked, not held", bar(`<span class="btn">Save draft</span><span class="btn pri">Publish</span>`) + page(`<div class="warn" style="margin-top:6px">Hold to publish</div>`)],
+      ["Holding", bar(`<span class="btn">Save draft</span><span class="btn pri hold">Publishing…</span>`) + page()],
+      ["After", bar(``) + after],
+    ] },
+  { name: "E · Ready switch", sum: "A status at the top reads Draft. Set it to Ready and a summary with Publish appears at the foot of the post; it never appears while it says Draft.",
+    steps: [
+      ["Writing", bar(`<span class="sel">Draft ▾</span>`) + page()],
+      ["Marked ready, at the foot", bar(`<span class="sel">Ready ▾</span>`) + `<div class="body"><div class="line"></div><div class="line s"></div><div class="h" style="margin-top:8px">Ready to publish</div>${summary}<div class="row" style="margin-top:6px"><span class="btn pri">Publish now</span><span class="ghost btn">Back to draft</span></div></div>`],
+      ["After", bar(``) + after],
+    ] },
+  { name: "F · Publish from the list", sum: "The editor only writes and saves; Done takes you home. Each draft in the list has Publish, which asks once inline.",
+    steps: [
+      ["Writing", bar(`<span class="btn pri">Done</span>`) + page()],
+      ["Home, confirming", `<div class="body"><div class="h">Drafts</div><ul class="list"><li><span>${T}</span><span class="btn">Publish</span></li></ul><div class="warn">Publish “${T}” now?<div class="row" style="margin-top:4px"><span class="btn pri">Publish now</span><span class="ghost btn">Cancel</span></div></div><ul class="list"><li><span>Second draft</span><span class="btn">Publish</span></li></ul></div>`],
+      ["After", `<div class="body"><div class="ok"><b>Published.</b> Live in about a minute. <span class="ghost btn">Open the post</span></div><div class="h">Drafts</div><ul class="list"><li><span>Second draft</span><span class="btn">Publish</span></li></ul></div>`],
+    ] },
+];
+
+document.getElementById("boards").innerHTML = boards.map((b) => `
+  <section class="board"><div class="cap"><b>${b.name}</b><span>${b.sum}</span></div>
+    <div class="flow">${b.steps.map(([label, html]) => `<div class="step"><p>${label} · desktop</p><div class="frame desk">${html}</div></div>`).join("")}</div>
+    <div class="flow" style="margin-top:.75rem">${b.steps.map(([label, html]) => `<div class="step"><p>${label} · phone</p><div class="frame phone">${html}</div></div>`).join("")}</div>
+  </section>`).join("");
+</script>
+</body>
+</html>

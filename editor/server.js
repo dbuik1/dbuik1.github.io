@@ -7,7 +7,7 @@
 import { createServer as createHttpServer } from "node:http";
 import { readFile, writeFile, readdir, mkdir, unlink } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
-import { execFile, spawn } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -499,6 +499,19 @@ function checkMeta(meta) {
 // GIT_TERMINAL_PROMPT=0: a missing login fails with a message instead of waiting for input nobody sees.
 const git = async (...args) => (await run("git", args, { cwd: ROOT, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } })).stdout.trim();
 
+// Whether an address is already used on GitHub. A file that is only on this
+// computer was left by a publish that didn't finish, so publishing again may
+// replace it. Without an upstream to ask, any file counts as taken.
+function taken(full) {
+  if (!existsSync(full)) return false;
+  try {
+    const rel = path.relative(ROOT, full).split(path.sep).join("/");
+    return !!execFileSync("git", ["ls-tree", "--name-only", "@{u}", "--", rel], { cwd: ROOT, encoding: "utf8" }).trim();
+  } catch {
+    return true;
+  }
+}
+
 // Eleventy's own error lines, without the stack trace.
 function buildError(e) {
   const out = `${e.stdout ?? ""}\n${e.stderr ?? ""}`;
@@ -532,7 +545,7 @@ function plan({ kind = "post", file, meta, body }) {
     if (problems.length) throw new UserError(problems.join(" "));
     const target = file ?? `${today()}-${slug}.md`;
     const full = notePath(target);
-    if (!file && existsSync(full)) throw new UserError(`A note called ${target} already exists. Change a word or two.`);
+    if (!file && taken(full)) throw new UserError(`A note called ${target} already exists. Change a word or two.`);
     const { date, slug: _slug, draft, ...fields } = meta;
     for (const k of ["kind", "by", "source"]) fields[k] = String(fields[k] ?? "").trim();
     if (draft) fields.draft = true;
@@ -559,7 +572,7 @@ function plan({ kind = "post", file, meta, body }) {
     if (problems.length) throw new UserError(problems.join(" "));
     const target = file ?? `${today()}-${slug}.md`;
     const full = commentaryPath(target);
-    if (!file && existsSync(full)) throw new UserError(`A commentary called ${target} already exists. Change the address under More details.`);
+    if (!file && taken(full)) throw new UserError(`A commentary called ${target} already exists. Change the address under More details.`);
     const { date, slug: _slug, draft, sourceText: _text, ...fields } = meta;
     const order = ["url", "title", "type", "author", "site", "published", "text", "doi", "archived", "archivedOn", "image", "key"];
     fields.source = Object.fromEntries(order.filter((k) => String(s[k] ?? "").trim()).map((k) => [k, k === "text" ? String(s[k]).trim() : String(s[k]).replace(/\s+/g, " ").trim()]));
@@ -584,7 +597,7 @@ function plan({ kind = "post", file, meta, body }) {
     if (!slug) problems.push("The title needs at least one letter or number.");
     if (problems.length) throw new UserError(problems.join(" "));
     const full = visualPath(slug);
-    if (!file && existsSync(path.dirname(full))) throw new UserError(`A visual at /visuals/${slug}/ already exists. Change the address under More details.`);
+    if (!file && taken(path.dirname(full))) throw new UserError(`A visual at /visuals/${slug}/ already exists. Change the address under More details.`);
     const { slug: _s, html, draft, ...fields } = meta;
     fields.description = fields.description.trim();
     if (draft) fields.draft = true;
@@ -603,7 +616,7 @@ function plan({ kind = "post", file, meta, body }) {
     checkProject(meta);
     const slug = file ?? slugify(meta.slug || meta.title);
     const full = projectPath(slug);
-    if (!file && existsSync(full)) throw new UserError(`A project at /projects/${slug}/ already exists. Change the address under More details.`);
+    if (!file && taken(full)) throw new UserError(`A project at /projects/${slug}/ already exists. Change the address under More details.`);
     const { slug: _s, draft, ...fields } = meta;
     fields.links = (fields.links ?? []).map((l) => ({ label: l.label.trim(), url: l.url.trim() }));
     if (draft) fields.draft = true;
@@ -619,7 +632,7 @@ function plan({ kind = "post", file, meta, body }) {
   const slug = slugify(meta.slug || meta.title);
   const target = file ?? `${meta.date && /^\d{4}-\d{2}-\d{2}$/.test(meta.date) ? meta.date : today()}-${slug}.md`;
   const full = postPath(target);
-  if (!file && existsSync(full)) throw new UserError(`A post called ${target} already exists. Change the address under More details.`);
+  if (!file && taken(full)) throw new UserError(`A post called ${target} already exists. Change the address under More details.`);
   const { date, slug: _slug, draft, category: _category, ...fields } = meta;
   fields.history = growth(file, meta.level, fields.history);
   return {
@@ -651,14 +664,21 @@ async function libraryChanged() {
   return !!(await git("status", "--porcelain", "--", path.relative(ROOT, references.LIBRARY)));
 }
 
-async function commitAndPush(paths, message) {
+// Commits not yet on GitHub, such as one from a publish whose push failed.
+const unpushed = async () => Number(await git("rev-list", "--count", "@{u}..HEAD").catch(() => "0"));
+
+async function commitAndPush(paths, message, restore) {
   const rels = paths.map((p) => path.relative(ROOT, p));
-  await git("add", "--", ...rels);
   try {
-    await git("commit", "-m", message, "--", ...rels);
+    await git("add", "--", ...rels);
+    const staged = await git("diff", "--cached", "--name-only", "--", ...rels);
+    if (staged) await git("commit", "-m", message, "--", ...rels);
+    else if (!(await unpushed())) return { unchanged: true };
   } catch (e) {
-    if (/nothing to commit|no changes added/.test(`${e.stdout}${e.stderr}`)) return { unchanged: true };
-    throw new UserError(`Couldn't commit: ${e.stderr || e.message}`);
+    // Take back the files just written, so fixing git and publishing again starts clean.
+    await git("restore", "--staged", "--", ...rels).catch(() => {});
+    await restore?.();
+    throw new UserError(`Nothing was published because git couldn't commit. Your draft is saved; fix the problem below, then publish again.\n\n${(e.stderr || e.message).trim()}`);
   }
   try {
     await git("push", "--quiet");
@@ -696,6 +716,15 @@ async function syncSite() {
         }
       }
       sync.error = null;
+      // A publish whose push failed left its commit here; send it on now.
+      const waiting = await unpushed();
+      if (waiting) {
+        try {
+          await git("push", "--quiet");
+        } catch (e) {
+          sync.error = `${waiting === 1 ? "One published change is" : `${waiting} published changes are`} on this computer but not on GitHub, so ${waiting === 1 ? "it isn't" : "they aren't"} live. The editor tries again each time it opens something. GitHub said:\n${(e.stderr || e.message).trim()}`;
+        }
+      }
     } catch (e) {
       sync.error = `Couldn't fetch the latest version from GitHub, so this shows the copy on this computer. ${(e.stderr || e.message).trim()}`;
     } finally {
@@ -766,7 +795,7 @@ async function publish(doc) {
     p = plan(doc);
     if (stillFile) extra.push(stillFile);
   }
-  if (p.isNew && existsSync(p.full)) throw new UserError(`${path.relative(ROOT, p.full)} already exists. Change the address under More details.`);
+  if (p.isNew && taken(p.full)) throw new UserError(`${path.relative(ROOT, p.full)} already exists. Change the address under More details.`);
 
   const files = [{ full: p.full, content: p.content }, ...(p.files ?? [])];
   const previous = await Promise.all(files.map(async (f) => (existsSync(f.full) ? readFile(f.full, "utf8") : null)));
@@ -774,7 +803,8 @@ async function publish(doc) {
     await mkdir(path.dirname(f.full), { recursive: true });
     await writeFile(f.full, f.content);
   }
-  await checkBuild(() => Promise.all(files.map((f, i) => (previous[i] === null ? unlink(f.full) : writeFile(f.full, previous[i])))));
+  const restore = () => Promise.all(files.map((f, i) => (previous[i] === null ? unlink(f.full) : writeFile(f.full, previous[i]))));
+  await checkBuild(restore);
 
   const paths = [...files.map((f) => f.full), ...imagesIn(p.content), ...extra];
   let posterMissing = false;
@@ -784,8 +814,9 @@ async function publish(doc) {
     else posterMissing = !existsSync(visuals.posterPath(p.poster));
   }
   if (await libraryChanged()) paths.push(references.LIBRARY);
-  const result = await commitAndPush(paths, p.message);
-  if (doc.id) await unlink(draftPath(doc.id)).catch(() => {});
+  const result = await commitAndPush(paths, p.message, restore);
+  // Until it reaches GitHub the draft stays, so publishing again can finish the job.
+  if (doc.id && result.pushed !== false) await unlink(draftPath(doc.id)).catch(() => {});
   const unsaved = doc.kind === "commentary" && !doc.meta.source?.archived;
   return { ...result, url: p.url, file: p.file, posterMissing, unsaved, actions: `${site.repo}/actions` };
 }

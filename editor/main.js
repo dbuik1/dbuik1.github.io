@@ -560,7 +560,7 @@ $("publish").addEventListener("click", async () => {
     } else {
       showCallout(
         "warn",
-        `“${title}” is committed on this computer but couldn't be pushed to GitHub, so it isn't live yet. Run git push in the site folder to finish.\n\n${result.pushError}`,
+        `“${title}” is saved on this computer but couldn't be sent to GitHub, so it isn't live yet. The editor sends it next time it opens anything, and your draft stays until then.\n\n${result.pushError}`,
         [back]
       );
     }
@@ -1155,7 +1155,7 @@ $("note-form").addEventListener("submit", async (e) => {
     state.replaceChildren(
       result.pushed
         ? "Published. It will be live in about a minute. "
-        : `Committed on this computer but couldn't be pushed, so it isn't live yet. Run git push in the site folder.\n${result.pushError ?? ""} `,
+        : `Saved on this computer but couldn't be sent to GitHub, so it isn't live yet. The editor sends it next time it opens anything.\n${result.pushError ?? ""} `,
       Object.assign(document.createElement("a"), { href: result.url, target: "_blank", rel: "noopener", textContent: "Open it" })
     );
     for (const id of ["note-line", "note-by", "note-source"]) $(id).value = "";

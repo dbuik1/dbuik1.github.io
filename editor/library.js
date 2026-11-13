@@ -100,7 +100,7 @@ async function publishLibrary() {
     apply(await api("GET", "/api/references"));
     if (r.unchanged) callout("ok", "The library was already live.");
     else if (r.pushed) callout("ok", "The library is published.", [{ label: "Watch the build", href: r.actions }]);
-    else callout("warn", `The library is committed on this computer but couldn't be pushed. Run git push in the site folder to finish.\n\n${r.pushError}`);
+    else callout("warn", `The library is saved on this computer but couldn't be sent to GitHub. The editor sends it next time it opens anything.\n\n${r.pushError}`);
   } catch (err) {
     callout("error", err.message);
   } finally {

@@ -23,7 +23,7 @@ Having gained an appreciation for the great advantage that it is not to negative
 Jesus himself speaks, on multiple occasions, of the importance of being as children and of asking, through faith, beyond what is deemed reasonable:
 
 - Matthew 17:20 ([NASB](https://www.lockman.org/))
-  - \*\*<sup>20</sup>\*\*And He said to them, "Because of your meager faith; for truly I say to you, if you have faith the size of a mustard seed, you will say to this mountain, 'Move from here to there,' and it will move; and nothing will be impossible for you.
+  - **<sup>20</sup>**And He said to them, "Because of your meager faith; for truly I say to you, if you have faith the size of a mustard seed, you will say to this mountain, 'Move from here to there,' and it will move; and nothing will be impossible for you.
 - Matthew 18:3-4 (NASB)
   - **<sup>3</sup>**... "Truly I say to you, unless you change and become like children, you will not enter the kingdom of heaven. **<sup>4</sup>** So whoever will humble himself like this child, he is the greatest in the kingdom of heaven.
 

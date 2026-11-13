@@ -23,6 +23,7 @@ import * as tagTools from "../lib/tags.js";
 import * as visuals from "../lib/visuals.js";
 import * as commentary from "../lib/commentary.js";
 import * as sources from "./sources.js";
+import * as liaFormat from "./lia.js";
 import site from "../src/_data/site.js";
 import levels from "../src/_data/levels.js";
 import importances from "../src/_data/importances.js";
@@ -954,22 +955,6 @@ function findHubctl() {
   return null;
 }
 
-// How the editor reads Markdown, with the sources and pages Lia may cite and
-// link to. Lists are capped so the request stays small.
-function liaFormat() {
-  const lib = references.list().slice(0, 400).map((r) => `@${r.key}: ${[r.author, r.year, r.title].filter(Boolean).join(", ")}`);
-  const pages = [...xref.targets().values()].slice(0, 400).map((t) => `${t.slug}: ${t.title}`);
-  return [
-    "Markdown for an Eleventy site, edited in a rich-text editor. Headings run from # (Heading 1) to ###### (Heading 6); the title is separate and is not in the text.",
-    "Footnotes: ^[text]. Citations become Chicago-style footnotes: [@key] or [@key, p. 23], using a key from the reference library below.",
-    "To cite a source that isn't in the library, write [@doi:DOI] or [@isbn:ISBN] with the real DOI or ISBN; the editor looks it up and adds it to the library. Never make one up.",
-    "Cross-links to the owner's own pages: [[slug]] or [[slug|link text]], using a slug below.",
-    "Keep HTML blocks, images, annotations and other markup exactly as they are unless asked to change them.",
-    lib.length ? `Reference library:\n${lib.join("\n")}` : "The reference library is empty.",
-    pages.length ? `The owner's pages:\n${pages.join("\n")}` : "",
-  ].filter(Boolean).join("\n\n");
-}
-
 function runHubctl(hubctl, input) {
   return new Promise((resolve, reject) => {
     const child = spawn(hubctl, ["edit", "--json"], { stdio: ["pipe", "pipe", "pipe"] });
@@ -1018,17 +1003,61 @@ async function addLiaSources(text) {
   return { text, added, missing };
 }
 
-async function askLia({ request, text = "", before = "", after = "", where = "" }) {
+// Lia's answer passes the build's checks before the owner sees it. Lia gets
+// one go at fixing what fails; anything still wrong is named in the note.
+async function askLia({ request, text = "", before = "", after = "", where = "", kind = "post" }) {
   const hubctl = findHubctl();
   if (!hubctl) throw new UserError("Lia isn't on this computer. Open the editor from your Spark to ask Lia.");
   if (!String(request ?? "").trim()) throw new UserError("Say what Lia should do.");
-  const input = JSON.stringify({ request, text, before, after, where: `Website editor: ${where}`, format: liaFormat() });
-  const got = await runHubctl(hubctl, input);
-  const sourced = await addLiaSources(String(got.text ?? ""));
+  const format = liaFormat.format({ kind });
+  const ask = (req, txt) => runHubctl(hubctl, JSON.stringify({ request: req, text: txt, before, after, where: `Website editor: ${where}`, format }));
+  let got = await ask(request, text);
+  let sourced = await addLiaSources(String(got.text ?? ""));
+  let left = liaFormat.problems(sourced.text);
+  if (left.length) {
+    const fix = `Fix only these problems in the text and change nothing else:\n- ${left.join("\n- ")}`;
+    const again = await ask(fix.slice(0, 1990), sourced.text).catch(() => null);
+    if (again) {
+      const resourced = await addLiaSources(String(again.text ?? ""));
+      const now = liaFormat.problems(resourced.text);
+      if (now.length < left.length) {
+        sourced = { text: resourced.text, added: sourced.added + resourced.added, missing: [...sourced.missing, ...resourced.missing] };
+        left = now;
+      }
+    }
+  }
   let note = String(got.note ?? "");
   if (sourced.added) note += ` Added ${sourced.added === 1 ? "a source" : `${sourced.added} sources`} to your reference library.`;
   if (sourced.missing.length) note += ` Couldn't find ${sourced.missing.join(", ")}, so that citation needs checking.`;
+  // Only the first line of each problem: an annotation's includes the whole passage.
+  if (left.length) note += ` Still to fix: ${left.map((p) => p.split("\n")[0]).join(" ")}`;
   return { text: sourced.text, note: note.trim(), libraryChanged: sourced.added > 0 };
+}
+
+// Tags for a post, from those already in use where they fit. Suggestions only:
+// the owner adds the ones they want.
+async function suggestTags({ text = "", title = "", tags = [] }) {
+  const hubctl = findHubctl();
+  if (!hubctl) throw new UserError("Lia isn't on this computer. Open the editor from your Spark to ask Lia.");
+  if (!String(text).trim()) throw new UserError("Write the post first, then Lia can suggest tags.");
+  const { tags: inUse } = await meta();
+  const got = await runHubctl(
+    hubctl,
+    JSON.stringify({
+      request:
+        "Suggest up to five tags for this post. Prefer tags already in use; make a new one only where none fits, nested with a slash like theology/church. " +
+        `Leave out tags it already has${tags.length ? ` (${tags.join(", ")})` : ""}. ` +
+        "Answer with the tags only, separated by commas, in place of the text.",
+      text: String(text),
+      where: `Website editor: tags for the post “${title || "untitled"}”`,
+      format: liaFormat.format({ tags: inUse }),
+    })
+  );
+  const have = new Set(tags.map((t) => t.toLowerCase()));
+  const tidy = (t) => t.trim().replace(/^#/, "").replace(/\s*\/\s*/g, "/").replace(/\s+/g, "-").toLowerCase();
+  const suggested = [...new Set(String(got.text ?? "").split(/[,\n]/).map(tidy).filter((t) => /^[\p{L}\p{N}][\p{L}\p{N}/-]*$/u.test(t) && !have.has(t)))].slice(0, 5);
+  if (!suggested.length) throw new UserError("Lia didn't suggest any new tags.");
+  return { tags: suggested, known: suggested.filter((t) => inUse.includes(t)) };
 }
 
 // ---- Site data for the form ----
@@ -1129,6 +1158,10 @@ const routes = {
   "POST /api/search": async (b) => annotations.search(b.source, b.query),
   "POST /api/publish": (b) => publish(b),
   "POST /api/lia": (b) => askLia(b),
+  "POST /api/lia/tags": (b) => suggestTags(b),
+  // For Lia's own tools: the same format notes and checks Ask Lia uses.
+  "GET /api/lia/format": async (_b, q) => (await syncSite(), { format: liaFormat.format({ kind: q.get("kind") ?? "post" }) }),
+  "POST /api/lia/check": async (b) => ({ problems: liaFormat.problems(String(b.text ?? "")) }),
   "POST /api/image": (b) => saveImage(b),
   "GET /api/references": () => libraryState(),
   "POST /api/references/add": (b) => addReferences(b),

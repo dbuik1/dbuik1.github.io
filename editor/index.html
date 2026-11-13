@@ -209,7 +209,8 @@
       <details class="more" data-kinds="post project visual commentary">
         <summary>More details</summary>
         <div class="more-grid">
-          <label class="wide" data-kinds="post">Description <input id="description" spellcheck="true" placeholder="One line for search results and link previews. Left blank, the first paragraph is used"></label>
+          <label class="wide" data-kinds="post">Description <input id="description" spellcheck="true" placeholder="Shown on the home page and in link previews. Blank: first paragraph"><button type="button" class="link-button" id="draft-description" hidden>Draft with Lia</button></label>
+          <p class="wide muted" id="description-status" data-kinds="post" aria-live="polite" hidden></p>
           <label>Address <span class="slug-field"><span class="muted" id="slug-prefix">/blog/</span><input id="slug" autocomplete="off"><span class="muted">/</span></span></label>
           <label data-kinds="post">Project <select id="project"><option value="">None</option></select></label>
           <label data-kinds="post">Series <input id="series" list="series-options" autocomplete="off"><datalist id="series-options"></datalist></label>

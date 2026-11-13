@@ -345,3 +345,4 @@ select, .details input, .more input, .picker input, .picker textarea {
 .editor-clip blockquote { margin: 0; padding-left: 1rem; border-left: 3px solid var(--mark); }
 .editor-clip figcaption { font-family: var(--font-label); font-size: 0.875rem; color: var(--muted); display: flex; gap: 0.5rem; align-items: baseline; }
 .editor-clip.ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 4px; }
+#description-status { margin: -0.4rem 0 0; font-size: 0.875rem; }

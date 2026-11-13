@@ -40,8 +40,8 @@
           </div>
         </details>
         <div class="quick-actions">
-          <button type="submit" class="secondary" id="note-publish">Publish note</button>
-          <span class="hint">Goes live straight away. Open it under Notes to add a comment.</span>
+          <button type="submit" class="secondary" id="note-publish">Publish note…</button>
+          <span class="hint">Open it under Notes later to add a comment.</span>
         </div>
         <p class="quick-state" id="note-state" role="status" hidden></p>
       </form>
@@ -103,8 +103,7 @@
         <button type="button" class="link-button back">← All posts</button>
         <span class="save-state" id="library-state" aria-live="polite"></span>
         <span class="publish-group" id="library-publish-group" hidden>
-          <button type="button" class="primary" id="library-publish">Publish library</button>
-          <span class="hint">Commits and pushes the library on its own. Publishing a post also includes it.</span>
+          <button type="button" class="primary" id="library-publish">Publish library…</button>
         </span>
       </header>
       <div class="callout" id="library-callout" role="status" hidden></div>
@@ -128,10 +127,8 @@
       <header class="write-bar">
         <button type="button" class="link-button" id="back">← Back</button>
         <span class="save-state" id="save-state" aria-live="polite"></span>
-        <span class="publish-group">
-          <button type="button" class="primary" id="publish">Publish</button>
-          <span class="hint" id="publish-hint"></span>
-        </span>
+        <button type="button" class="secondary" id="save-draft" title="Save draft (Ctrl+S)">Save draft</button>
+        <button type="button" class="primary" id="publish">Publish…</button>
       </header>
 
       <!-- What the site shows now, and whether this is a draft of changes to it -->
@@ -297,6 +294,26 @@
       <textarea id="source" class="source-text" aria-label="Source: Markdown and HTML" spellcheck="true" autocorrect="on" autocapitalize="sentences" hidden></textarea>
     </main>
   </div>
+
+  <dialog id="publish-panel" class="publish-panel" aria-labelledby="publish-panel-title">
+    <div class="publish-sheet">
+      <h2 id="publish-panel-title"></h2>
+      <p class="publish-what" id="publish-what"></p>
+      <div class="callout callout-warn" id="publish-warnings" hidden></div>
+      <dl class="publish-summary" id="publish-summary"></dl>
+      <div class="publish-changes" id="publish-changes" hidden>
+        <p id="publish-changes-sum"></p>
+        <details id="publish-diff-wrap">
+          <summary>Show the changes</summary>
+          <div class="lia-diff" id="publish-diff"></div>
+        </details>
+      </div>
+      <div class="publish-foot">
+        <button type="button" class="primary" id="publish-confirm"></button>
+        <button type="button" class="link-button" id="publish-cancel">Not yet</button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="picker" class="picker" aria-labelledby="picker-title">
     <form method="dialog" class="picker-form" id="picker-form">

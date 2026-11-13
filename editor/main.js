@@ -14,6 +14,7 @@ import { HtmlBlock, HtmlInline, Sup, Sub, initHtml, newHtmlBlock } from "./html.
 import { VisualEmbed, initVisualPicker, openVisualPicker, setVisuals } from "./visual.js";
 import { Excerpt, Moment, balance } from "./clips.js";
 import { renderDiff } from "./textdiff.js";
+import { initPublishPanel, openPublishPanel } from "./publish.js";
 import { initCommentary, setSource, getSource, saveCopy, openExcerpt, openMoment, LONG_QUOTE } from "./commentary.js";
 
 const $ = (id) => document.getElementById(id);
@@ -33,6 +34,7 @@ const meta = await api("GET", "/api/meta");
 initPicker(meta, api);
 initDialogs(api);
 initLibrary(api);
+initPublishPanel();
 initXref(api);
 initHtml();
 initVisualPicker();
@@ -303,28 +305,29 @@ function showParts(kind, inline) {
   }
 }
 
+// Per kind and state: the button that opens the publish panel, and what publishing does.
 const PUBLISH = {
   post: {
-    new: ["Publish", "Checks the post, then pushes it live with any new images and sources."],
-    live: ["Update live post", "Checks the post, then pushes the changes live with any new images and sources."],
+    new: ["Publish…", "Checks the post, then pushes it live with any new images and sources."],
+    live: ["Update…", "Checks the post, then pushes the changes live with any new images and sources."],
   },
   project: {
-    new: ["Publish project", "Checks the page, then pushes it live with any new images and sources."],
-    live: ["Update live project", "Checks the page, then pushes the changes live with any new images and sources."],
+    new: ["Publish…", "Checks the page, then pushes it live with any new images and sources."],
+    live: ["Update…", "Checks the page, then pushes the changes live with any new images and sources."],
   },
   visual: {
-    new: ["Publish visual", "Checks the visual and takes its still image, then pushes it live."],
-    live: ["Update live visual", "Checks the visual and takes a new still image, then pushes the changes live."],
+    new: ["Publish…", "Checks the visual and takes its still image, then pushes it live."],
+    live: ["Update…", "Checks the visual and takes a new still image, then pushes the changes live."],
   },
   commentary: {
-    new: ["Publish commentary", "Checks it, saves a copy of the source at the Internet Archive, then pushes it live."],
-    live: ["Update live commentary", "Checks it, then pushes the changes live."],
+    new: ["Publish…", "Checks it, saves a copy of the source at the Internet Archive, then pushes it live."],
+    live: ["Update…", "Checks it, then pushes the changes live."],
   },
   note: {
-    new: ["Publish note", "Checks the note, then pushes it live."],
-    live: ["Update live note", "Checks the note, then pushes the changes live."],
+    new: ["Publish…", "Checks the note, then pushes it live."],
+    live: ["Update…", "Checks the note, then pushes the changes live."],
   },
-  text: { live: ["Update live text", "Checks the site, then pushes this text live with any new images and sources."] },
+  text: { live: ["Update…", "Checks the site, then pushes this text live with any new images and sources."] },
 };
 
 function fill(d) {
@@ -370,9 +373,7 @@ function fill(d) {
   renderTags();
   const source = info?.inline ? "" : d.body ?? "";
   editor.commands.setContent(source, { contentType: "markdown", emitUpdate: false });
-  const [label, hint] = PUBLISH[kind][d.file ? "live" : "new"];
-  $("publish").textContent = label;
-  $("publish-hint").textContent = hint;
+  $("publish").textContent = PUBLISH[kind][d.file ? "live" : "new"][0];
   hideCallout();
   setSourceMode(false);
   if (!info?.inline && !keepsFormatting(source, editor.getMarkdown())) {
@@ -413,7 +414,6 @@ function showLive(d) {
   $("live-version").hidden = true;
   if (!live) return;
   const kind = kindOf(d);
-  const update = `“${PUBLISH[kind].live[0]}”`;
   const drafted = !!d.updated;
   box.classList.toggle("has-draft", drafted);
 
@@ -421,12 +421,12 @@ function showLive(d) {
   if (drafted) {
     const when = new Date(d.updated).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     const shown = kind === "text" && !live.body ? "the grey placeholder" : "the earlier version";
-    line = `These are your unpublished changes from ${when}. The site still shows ${shown} until you press ${update}, which replaces it.`;
+    line = `These are your unpublished changes from ${when}. The site still shows ${shown} until you update it.`;
     if (d.liveMoved) line += " The site's version has also changed since you started, so updating would overwrite that newer text. Check it first.";
   } else if (kind === "text" && !live.body) {
-    line = `This is empty on the site, so the site shows the grey placeholder. What you write here replaces it when you press ${update}.`;
+    line = `This is empty on the site, so the site shows the grey placeholder. What you write here replaces it when you update it.`;
   } else {
-    line = `This is what's on the site now. Your edits stay on this computer until you press ${update}, which replaces it.`;
+    line = `This is what's on the site now. Your edits stay on this computer until you update it.`;
   }
   $("live-line").textContent = line;
 
@@ -525,11 +525,58 @@ function showCallout(kind, text, actions = []) {
 }
 const hideCallout = () => ($("callout").hidden = true);
 
-// ---- Publishing ----
-$("publish").addEventListener("click", async () => {
+// ---- Saving and publishing ----
+// Drafts save on their own; Save draft does it now. Publishing always goes
+// through the panel, which says what will go out before anything does.
+$("save-draft").addEventListener("click", async () => {
+  if (dirty) await saveDraft();
+  else setSaveState(doc?.updated ? `Draft saved ${time(doc.updated)}` : "No changes to save");
+});
+
+$("publish").addEventListener("click", () => {
+  if (!doc) return;
+  const kind = kindOf(doc);
+  const live = !!doc.file;
+  const d = collect();
+  const m = d.meta;
+  const name = kind === "text" ? textInfo(doc.file).label : m.title || "Untitled";
+  const nameOf = (list, slug) => list.find((x) => x.slug === slug)?.name;
+  const address = live ? liveUrl(doc) : kind === "note" ? "" : `${meta.siteUrl}${$("slug-prefix").textContent}${m.slug}/`;
+  const tags = m.tags?.length ? m.tags.join(", ") : "";
+  const rows = {
+    post: [
+      ["Research level", nameOf(meta.levels, m.level) ?? "Not chosen"],
+      ["Importance", nameOf(meta.importances, m.importance) ?? "Not chosen"],
+      ["Tags", tags],
+      ["Description", m.description || "The first paragraph"],
+      ["Project", m.project ? fields.project.selectedOptions[0]?.textContent : ""],
+      ["Series", m.series],
+      ["Visual at the top", m.visual ? fields.postVisual.selectedOptions[0]?.textContent : ""],
+    ],
+    project: [["Status", fields.status.selectedOptions[0]?.textContent], ["Summary", m.summary]],
+    visual: [["Tags", tags]],
+    commentary: [["Responding to", m.source?.title || m.source?.url], ["Tags", tags]],
+    note: [["Kind", m.kind], ["Who said it", m.by], ["Tags", tags]],
+    text: [],
+  }[kind];
+  const warnings = [];
+  if (doc.liveMoved) warnings.push("The version on the site changed after you started these changes. Updating replaces it with yours.");
+  if (!$("level-hint").hidden) warnings.push($("level-hint").textContent);
+  if (kind === "post" && !(m.level && m.importance)) warnings.push("Choose a research level and importance before publishing.");
+  if (kind === "commentary") warnings.push(quoteWarning());
+  openPublishPanel({
+    title: live ? `Update “${name}” on the site?` : `Publish “${name}”?`,
+    what: PUBLISH[kind][live ? "live" : "new"][1],
+    rows: [["Address", address], ...rows],
+    warnings,
+    changes: live && doc.live ? { before: doc.live.body ?? "", after: d.body ?? "" } : null,
+    confirmLabel: live ? "Update now" : "Publish now",
+    onConfirm: publishNow,
+  });
+});
+
+async function publishNow() {
   const button = $("publish");
-  if (doc?.liveMoved && !confirm("The version on the site changed after you started these changes. Publishing replaces it with yours. Publish anyway?")) return;
-  if (kindOf(doc) === "commentary" && !quotesInProportion()) return;
   button.disabled = true;
   const label = button.textContent;
   button.textContent = "Checking…";
@@ -574,25 +621,21 @@ $("publish").addEventListener("click", async () => {
     sourceBox.readOnly = true;
     editor.setEditable(false);
     button.hidden = true;
-    $("publish-hint").hidden = true;
+    $("save-draft").hidden = true;
   } catch (e) {
     showCallout("error", e.message);
   } finally {
     button.disabled = false;
     button.textContent = label;
   }
-});
+}
 
 // Quoting is fair when the quotes serve the commentary, so long ones get a second look.
-function quotesInProportion() {
+function quoteWarning() {
   const { quoted, longest, own } = balance(body());
-  if (longest > LONG_QUOTE * 1.5) {
-    return confirm(`One quote is ${longest} words long. Quoting only the part you respond to keeps this fair to the source. Publish anyway?`);
-  }
-  if (quoted > own) {
-    return confirm(`The quotes (${quoted} words) are longer than your own words (${own}). Publish anyway?`);
-  }
-  return true;
+  if (longest > LONG_QUOTE * 1.5) return `One quote is ${longest} words long. Quoting only the part you respond to keeps this fair to the source.`;
+  if (quoted > own) return `The quotes (${quoted} words) are longer than your own words (${own}).`;
+  return "";
 }
 
 // ---- Source view ----
@@ -1175,10 +1218,21 @@ drop.addEventListener("drop", (e) => {
 });
 
 // ---- Notes: one line, published straight from the home screen ----
-$("note-form").addEventListener("submit", async (e) => {
+$("note-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const title = $("note-line").value.trim();
   if (!title) return;
+  const tags = [...new Set($("note-tags").value.split(",").map((t) => t.trim()).filter(Boolean))];
+  openPublishPanel({
+    title: "Publish this note?",
+    what: "Checks the note, then pushes it live.",
+    rows: [["Note", title], ["Kind", $("note-kind").value.trim()], ["Who said it", $("note-by").value.trim()], ["Source", $("note-source").value.trim()], ["Tags", tags.join(", ")]],
+    confirmLabel: "Publish now",
+    onConfirm: () => publishNote(title, tags),
+  });
+});
+
+async function publishNote(title, tags) {
   const button = $("note-publish");
   const state = $("note-state");
   const label = button.textContent;
@@ -1194,7 +1248,7 @@ $("note-form").addEventListener("submit", async (e) => {
         kind: $("note-kind").value.trim(),
         by: $("note-by").value.trim(),
         source: $("note-source").value.trim(),
-        tags: [...new Set($("note-tags").value.split(",").map((t) => t.trim()).filter(Boolean))],
+        tags,
       },
       body: "",
     });
@@ -1217,7 +1271,7 @@ $("note-form").addEventListener("submit", async (e) => {
     button.textContent = label;
     $("note-line").focus();
   }
-});
+}
 
 async function showSite() {
   await saveDraft();
@@ -1279,7 +1333,7 @@ function showWrite(d) {
   sourceBox.readOnly = false;
   editor.setEditable(true);
   $("publish").hidden = false;
-  $("publish-hint").hidden = false;
+  $("save-draft").hidden = false;
   fill(d);
   const kind = kindOf(d);
   if (kind === "text") {

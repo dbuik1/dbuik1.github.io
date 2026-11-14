@@ -1,4 +1,5 @@
 // The Reference library screen.
+import { openPublishPanel } from "./publish.js";
 const $ = (id) => document.getElementById(id);
 let api;
 let state = { entries: [], unpublished: false };
@@ -145,7 +146,14 @@ export function initLibrary(apiFn) {
     e.target.value = "";
   });
   $("library-filter").addEventListener("input", draw);
-  $("library-publish").addEventListener("click", publishLibrary);
+  $("library-publish").addEventListener("click", () =>
+    openPublishPanel({
+      title: "Publish the reference library?",
+      what: "Commits and pushes the library on its own. Publishing a post also includes it.",
+      confirmLabel: "Publish now",
+      onConfirm: publishLibrary,
+    })
+  );
 }
 
 export async function showLibrary() {
